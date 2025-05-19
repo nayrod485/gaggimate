@@ -38,10 +38,13 @@ void Heater::setupAutotune(int tuningTemp, int samples) {
 
 void Heater::loop() {
     if (temperature <= 0 || setpoint <= 0) {
+        pid->SetMode(QuickPID::Control::manual);
         digitalWrite(heaterPin, LOW);
+        relayStatus = false;
         temperature = sensor->read();
         return;
     }
+    pid->SetMode(QuickPID::Control::automatic);
 
     if (autotuning) {
         loopAutotune();
@@ -53,8 +56,6 @@ void Heater::loop() {
 void Heater::setSetpoint(float setpoint) {
     if (this->setpoint != setpoint) {
         this->setpoint = setpoint;
-        pid->SetMode(QuickPID::Control::manual);
-        pid->SetMode(QuickPID::Control::automatic);
         ESP_LOGV(LOG_TAG, "Set setpoint %f°C", setpoint);
     }
 }
@@ -74,7 +75,7 @@ void Heater::autotune(int testTime, int samples) {
 }
 
 void Heater::loopPid() {
-    softPwm(TUNER_OUTPUT_SPAN, 1);
+    softPwm(TUNER_OUTPUT_SPAN);
     if (pid->Compute()) {
         temperature = sensor->read();
         plot(output, 1.0f, 3);
@@ -89,52 +90,38 @@ void Heater::loopAutotune() {
         microseconds = micros();
         temperature = sensor->read();
         output = tuner->tunePID(temperature, microseconds);
-        softPwm(TUNER_OUTPUT_SPAN, 1);
+        softPwm(TUNER_OUTPUT_SPAN);
         plot(output, 1.0f, 3);
         while (micros() - microseconds < loopInterval) {
-            softPwm(TUNER_OUTPUT_SPAN, 1);
+            softPwm(TUNER_OUTPUT_SPAN);
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
     }
     output = 0;
-    softPwm(TUNER_OUTPUT_SPAN, 1);
+    softPwm(TUNER_OUTPUT_SPAN);
     pid_callback(tuner->getKp(), tuner->getKi(), tuner->getKd());
     setTunings(tuner->getKp(), tuner->getKi(), tuner->getKd());
     autotuning = false;
 }
 
-float Heater::softPwm(uint32_t windowSize, uint8_t debounce) {
+float Heater::softPwm(uint32_t windowSize) {
     // software PWM timer
-    uint32_t msNow = millis();
-    static uint32_t windowStartTime, nextSwitchTime;
+    unsigned long msNow = millis();
     if (msNow - windowStartTime >= windowSize) {
         windowStartTime = msNow;
     }
-    // SSR optimum AC half-cycle controller
-    /*
-    static float optimumOutput;
-    static bool reachedSetpoint;
-
-    if (temperature > setpoint) reachedSetpoint = true;
-    if (reachedSetpoint && !debounce && setpoint > 0 && temperature > setpoint) optimumOutput = output - 8;
-    else if (reachedSetpoint && !debounce && setpoint > 0 && temperature < setpoint) optimumOutput = output + 8;
-    else  optimumOutput = output;
-    if (optimumOutput < 0) optimumOutput = 0;
-    */
-
     float optimumOutput = output;
 
     // PWM relay output
-    static bool relayStatus;
-    if (!relayStatus && optimumOutput > (msNow - windowStartTime)) {
+    if (!relayStatus && static_cast<unsigned long>(optimumOutput) > (msNow - windowStartTime)) {
         if (msNow > nextSwitchTime) {
-            nextSwitchTime = msNow + debounce;
+            nextSwitchTime = msNow;
             relayStatus = true;
             digitalWrite(heaterPin, HIGH);
         }
-    } else if (relayStatus && optimumOutput < (msNow - windowStartTime)) {
+    } else if (relayStatus && static_cast<unsigned long>(optimumOutput) < (msNow - windowStartTime)) {
         if (msNow > nextSwitchTime) {
-            nextSwitchTime = msNow + debounce;
+            nextSwitchTime = msNow;
             relayStatus = false;
             digitalWrite(heaterPin, LOW);
         }

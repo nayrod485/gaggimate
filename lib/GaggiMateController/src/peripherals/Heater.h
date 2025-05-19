@@ -30,7 +30,7 @@ class Heater {
     void setupAutotune(int tuningTemp, int samples);
     void loopPid();
     void loopAutotune();
-    float softPwm(uint32_t windowSize, uint8_t debounce);
+    float softPwm(uint32_t windowSize);
     void plot(float optimumOutput, float outputScale, uint8_t everyNth);
 
     TemperatureSensor *sensor;
@@ -49,6 +49,10 @@ class Heater {
     float Ki = 40;
     float Kd = 10;
     int plotCount = 0;
+
+    bool relayStatus = false;
+    unsigned long windowStartTime = 0;
+    unsigned long nextSwitchTime = 0;
 
     // Autotune variables
     bool startup = true;
