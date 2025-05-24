@@ -41,6 +41,7 @@ Settings::Settings() {
     homeAssistantUser = preferences.getString("ha_u", "");
     homeAssistantPassword = preferences.getString("ha_pw", "");
     timezone = preferences.getString("tz", DEFAULT_TIMEZONE);
+    selectedProfile = preferences.getString("sp", "");
     preferences.end();
 
     xTaskCreate(loopTask, "Settings::loop", configMINIMAL_STACK_SIZE * 6, this, 1, &taskHandle);
@@ -236,6 +237,11 @@ void Settings::setTimezone(String timezone) {
     save();
 }
 
+void Settings::setSelectedProfile(String selected_profile) {
+    this->selectedProfile = std::move(selected_profile);
+    save();
+}
+
 void Settings::doSave() {
     if (!dirty) {
         return;
@@ -279,6 +285,7 @@ void Settings::doSave() {
     preferences.putString("ha_u", homeAssistantUser);
     preferences.putString("ha_pw", homeAssistantPassword);
     preferences.putString("tz", timezone);
+    preferences.putString("sp", selectedProfile);
     preferences.end();
 }
 
