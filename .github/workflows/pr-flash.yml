@@ -3,7 +3,6 @@ name: Deploy PR Preview
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    branches: [main]
 jobs:
   deploy:
     runs-on: ubuntu-latest
