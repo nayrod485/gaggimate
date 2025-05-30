@@ -5,6 +5,7 @@
 struct Capabilities {
     bool dimming;
     bool pressure;
+    bool ssrPump;
 };
 
 struct ControllerConfig {
@@ -71,6 +72,7 @@ const ControllerConfig GM_STANDARD_REV_1X = {.name = "GaggiMate Standard Rev 1.x
                                              .capabilites = {
                                                  .dimming = false,
                                                  .pressure = false,
+                                                 .ssrPump = false,
                                              }};
 
 const ControllerConfig GM_STANDARD_REV_2X = {.name = "GaggiMate Standard Rev 2.x",
@@ -98,6 +100,7 @@ const ControllerConfig GM_STANDARD_REV_2X = {.name = "GaggiMate Standard Rev 2.x
                                              .capabilites = {
                                                  .dimming = false,
                                                  .pressure = false,
+                                                 .ssrPump = true,
                                              }};
 
 const ControllerConfig GM_PRO_REV_1x = {.name = "GaggiMate Pro Rev 1.x",
@@ -128,36 +131,38 @@ const ControllerConfig GM_PRO_REV_1x = {.name = "GaggiMate Pro Rev 1.x",
                                         .capabilites = {
                                             .dimming = true,
                                             .pressure = true,
+                                            .ssrPump = false,
                                         }};
 
 const ControllerConfig GM_PRO_LEGO = {.name = "GaggiMate Pro Lego Build",
-                                        .autodetectValue = 3,
-                                        .heaterPin = 14,
-                                        .pumpPin = 9,
-                                        .pumpSensePin = 21,
-                                        .pumpOn = 1,
-                                        .valvePin = 10,
-                                        .valveOn = 1,
-                                        .altPin = 47,
-                                        .altOn = 1,
-                                        .pressureScl = 41,
-                                        .pressureSda = 42,
-                                        .maxSckPin = 6,
-                                        .maxCsPin = 7,
-                                        .maxMisoPin = 4,
-                                        .brewButtonPin = 38,
-                                        .steamButtonPin = 48,
-                                        .scaleSclPin = 17,
-                                        .scaleSdaPin = 18,
-                                        .scaleSda1Pin = 39,
-                                        .ext1Pin = 1,
-                                        .ext2Pin = 2,
-                                        .ext3Pin = 8,
-                                        .ext4Pin = 12,
-                                        .ext5Pin = 13,
-                                        .capabilites = {
-                                            .dimming = true,
-                                            .pressure = true,
-                                        }};
+                                      .autodetectValue = 3,
+                                      .heaterPin = 14,
+                                      .pumpPin = 9,
+                                      .pumpSensePin = 21,
+                                      .pumpOn = 1,
+                                      .valvePin = 10,
+                                      .valveOn = 1,
+                                      .altPin = 47,
+                                      .altOn = 1,
+                                      .pressureScl = 41,
+                                      .pressureSda = 42,
+                                      .maxSckPin = 6,
+                                      .maxCsPin = 7,
+                                      .maxMisoPin = 4,
+                                      .brewButtonPin = 38,
+                                      .steamButtonPin = 48,
+                                      .scaleSclPin = 17,
+                                      .scaleSdaPin = 18,
+                                      .scaleSda1Pin = 39,
+                                      .ext1Pin = 1,
+                                      .ext2Pin = 2,
+                                      .ext3Pin = 8,
+                                      .ext4Pin = 12,
+                                      .ext5Pin = 13,
+                                      .capabilites = {
+                                          .dimming = true,
+                                          .pressure = true,
+                                          .ssrPump = false,
+                                      }};
 
 #endif // CONTROLLERCONFIG_H

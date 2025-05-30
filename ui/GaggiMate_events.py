@@ -107,7 +107,7 @@ def onGrindVolumetricClick(event_struct):
     return
 
 
-def onProfileLoad(event_struct):
+def onPreviousProfile(event_struct):
     return
 
 
@@ -115,6 +115,6 @@ def onNextProfile(event_struct):
     return
 
 
-def onPreviousProfile(event_struct):
+def onProfileLoad(event_struct):
     return
 

@@ -16,6 +16,10 @@
 void Controller::setup() {
     mode = settings.getStartupMode();
 
+    if (!SPIFFS.begin(true)) {
+        Serial.println("An Error has occurred while mounting LittleFS");
+    }
+
     pluginManager = new PluginManager();
     ui = new DefaultUI(this, pluginManager);
     if (settings.isHomekit())
@@ -34,10 +38,6 @@ void Controller::setup() {
     pluginManager->registerPlugin(new WebUIPlugin());
     pluginManager->registerPlugin(&BLEScales);
     pluginManager->setup(this);
-
-    if (!SPIFFS.begin(true)) {
-        Serial.println("An Error has occurred while mounting LittleFS");
-    }
 
     ui->init();
 }
@@ -61,7 +61,10 @@ void Controller::connect() {
 
 void Controller::setupBluetooth() {
     clientController.initClient();
-    clientController.registerTempReadCallback([this](const float temp) { onTempRead(temp); });
+    clientController.registerSensorCallback([this](const float temp, const float pressure) {
+        onTempRead(temp);
+        pluginManager->trigger("boiler:pressure:change", "value", pressure);
+    });
     clientController.registerBrewBtnCallback([this](const int brewButtonStatus) { handleBrewButton(brewButtonStatus); });
     clientController.registerSteamBtnCallback([this](const int steamButtonStatus) { handleSteamButton(steamButtonStatus); });
     clientController.registerRemoteErrorCallback([this](const int error) {
@@ -200,13 +203,8 @@ void Controller::loop() {
                 }
             }
         }
-        int targetTemp = getTargetTemp();
-        if (targetTemp > 0) {
-            targetTemp = targetTemp + settings.getTemperatureOffset();
-        }
-        clientController.sendTemperatureControl(targetTemp);
         clientController.sendPidSettings(settings.getPid());
-        updateRelay();
+        updateControl();
         lastProgress = now;
     }
 
@@ -239,7 +237,7 @@ void Controller::startProcess(Process *process) {
         return;
     processCompleted = false;
     this->currentProcess = process;
-    updateRelay();
+    updateControl();
     updateLastAction();
 }
 
@@ -262,7 +260,7 @@ int Controller::getTargetTemp() {
 }
 
 void Controller::setTargetTemp(int temperature) {
-    pluginManager->trigger("boiler:targetTemperature:change", "value", getTargetTemp());
+    pluginManager->trigger("boiler:targetTemperature:change", "value", temperature);
     switch (mode) {
     case MODE_BREW:
     case MODE_GRIND:
@@ -276,6 +274,8 @@ void Controller::setTargetTemp(int temperature) {
         break;
     default:;
     }
+    clientController.sendPidSettings(settings.getPid());
+    updateControl();
     updateLastAction();
 }
 
@@ -383,9 +383,13 @@ void Controller::lowerGrindTarget() {
     }
 }
 
-void Controller::updateRelay() {
-    clientController.sendPumpControl(isActive() ? currentProcess->getPumpValue() : 0);
-    clientController.sendValveControl(isActive() && currentProcess->isRelayActive());
+void Controller::updateControl() {
+    int targetTemp = getTargetTemp();
+    if (targetTemp > 0) {
+        targetTemp = targetTemp + settings.getTemperatureOffset();
+    }
+    clientController.sendOutputControl(isActive() && currentProcess->isRelayActive(),
+                                       isActive() ? currentProcess->getPumpValue() : 0, static_cast<float>(targetTemp));
     clientController.sendAltControl(isActive() && currentProcess->isAltRelayActive());
 }
 
@@ -429,7 +433,7 @@ void Controller::deactivate() {
     if (lastProcess->getType() == MODE_GRIND) {
         pluginManager->trigger("controller:grind:end");
     }
-    updateRelay();
+    updateControl();
     updateLastAction();
 }
 

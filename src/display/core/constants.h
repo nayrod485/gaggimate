@@ -15,7 +15,7 @@
 #define MIN_TEMP 0
 #define MAX_TEMP 160
 #define DEFAULT_TEMPERATURE_OFFSET 0
-#define DEFAULT_PID "2.4,40,10"
+#define DEFAULT_PID "24,0.2,700"
 #define DEFAULT_MDNS_NAME "gaggimate"
 #define DEFAULT_OTA_CHANNEL "latest"
 #define DEFAULT_TIMEZONE "Europe/Rome"

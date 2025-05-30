@@ -20,21 +20,20 @@ void GaggiMateController::setup() {
     _ble.initServer(systemInfo);
 
     this->thermocouple = new Max31855Thermocouple(
-        _config.maxCsPin, _config.maxMisoPin, _config.maxSckPin, [this](float temperature) { _ble.sendTemperature(temperature); },
+        _config.maxCsPin, _config.maxMisoPin, _config.maxSckPin, [this](float temperature) { /* noop */ },
         [this]() { thermalRunawayShutdown(); });
     this->heater = new Heater(
         this->thermocouple, _config.heaterPin, [this]() { thermalRunawayShutdown(); },
         [this](float Kp, float Ki, float Kd) { _ble.sendAutotuneResult(Kp, Ki, Kd); });
     this->valve = new SimpleRelay(_config.valvePin, _config.valveOn);
     this->alt = new SimpleRelay(_config.altPin, _config.altOn);
+    if (_config.capabilites.pressure) {
+        pressureSensor = new PressureSensor(_config.pressureSda, _config.pressureScl, [this](float pressure) { /* noop */ });
+    }
     if (_config.capabilites.dimming) {
         pump = new DimmedPump(_config.pumpPin, _config.pumpSensePin);
     } else {
-        pump = new SimplePump(_config.pumpPin, _config.pumpOn);
-    }
-    if (_config.capabilites.pressure) {
-        pressureSensor =
-            new PressureSensor(_config.pressureSda, _config.pressureScl, [this](float pressure) { _ble.sendPressure(pressure); });
+        pump = new SimplePump(_config.pumpPin, _config.pumpOn, _config.capabilites.ssrPump ? 1000.0f : 5000.0f);
     }
     this->brewBtn = new DigitalInput(_config.brewButtonPin, [this](const bool state) { _ble.sendBrewBtnState(state); });
     this->steamBtn = new DigitalInput(_config.steamButtonPin, [this](const bool state) { _ble.sendSteamBtnState(state); });
@@ -47,14 +46,17 @@ void GaggiMateController::setup() {
     this->steamBtn->setup();
     if (_config.capabilites.pressure) {
         pressureSensor->setup();
+        _ble.registerPressureScaleCallback([this](float scale) { this->pressureSensor->setScale(scale); });
     }
 
     // Initialize last ping time
     lastPingTime = millis();
 
-    _ble.registerTempControlCallback([this](float temperature) { this->heater->setSetpoint(temperature); });
-    _ble.registerPumpControlCallback([this](float setpoint) { this->pump->setPower(setpoint); });
-    _ble.registerValveControlCallback([this](bool state) { this->valve->set(state); });
+    _ble.registerOutputControlCallback([this](bool valve, float pumpSetpoint, float heaterSetpoint) {
+        this->pump->setPower(pumpSetpoint);
+        this->valve->set(valve);
+        this->heater->setSetpoint(heaterSetpoint);
+    });
     _ble.registerAltControlCallback([this](bool state) { this->alt->set(state); });
     _ble.registerPidControlCallback([this](float Kp, float Ki, float Kd) { this->heater->setTunings(Kp, Ki, Kd); });
     _ble.registerPingCallback([this]() {
@@ -71,7 +73,8 @@ void GaggiMateController::loop() {
     if ((now - lastPingTime) / 1000 > PING_TIMEOUT_SECONDS) {
         handlePingTimeout();
     }
-    delay(1000);
+    sendSensorData();
+    delay(250);
 }
 
 void GaggiMateController::registerBoardConfig(ControllerConfig config) { configs.push_back(config); }
@@ -118,4 +121,12 @@ void GaggiMateController::thermalRunawayShutdown() {
     this->valve->set(false);
     this->alt->set(false);
     _ble.sendError(ERROR_CODE_RUNAWAY);
+}
+
+void GaggiMateController::sendSensorData() {
+    if (_config.capabilites.pressure) {
+        _ble.sendSensorData(this->thermocouple->read(), this->pressureSensor->getPressure());
+    } else {
+        _ble.sendSensorData(this->thermocouple->read(), 0.0f);
+    }
 }

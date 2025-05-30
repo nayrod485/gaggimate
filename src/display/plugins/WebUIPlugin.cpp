@@ -274,6 +274,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
                 settings->setTimezone(request->arg("timezone"));
             if (request->hasArg("standbyTimeout"))
                 settings->setStandbyTimeout(request->arg("standbyTimeout").toInt() * 1000);
+            settings->save(true);
         });
         controller->setTargetTemp(controller->getTargetTemp());
     }
@@ -281,7 +282,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
     AsyncResponseStream *response = request->beginResponseStream("application/json");
     JsonDocument doc;
     Settings const &settings = controller->getSettings();
-    doc["startupMode"] = settings.getStartupMode();
+    doc["startupMode"] = settings.getStartupMode() == MODE_BREW ? "brew" : "standby";
     doc["targetBrewTemp"] = settings.getTargetBrewTemp();
     doc["targetSteamTemp"] = settings.getTargetSteamTemp();
     doc["targetWaterTemp"] = settings.getTargetWaterTemp();

@@ -11,7 +11,7 @@ class Controller;
 constexpr int RERENDER_INTERVAL_IDLE = 2500;
 constexpr int RERENDER_INTERVAL_ACTIVE = 250;
 
-int16_t calculate_angle(int set_temp);
+int16_t calculate_angle(int set_temp, int range, int offset);
 
 class DefaultUI {
   public:
@@ -33,6 +33,8 @@ class DefaultUI {
 
     void updateStandbyScreen() const;
     void updateStatusScreen() const;
+
+    void adjustDials(lv_obj_t *dials);
 
     Controller *controller;
     PluginManager *pluginManager;
@@ -58,6 +60,8 @@ class DefaultUI {
     int targetVolume = 0;
     int grindDuration = 0;
     int grindVolume = 0;
+    int pressureAvailable = 0;
+    float pressure = 0.0f;
 
     // Screen change
     lv_obj_t **targetScreen = &ui_InitScreen;

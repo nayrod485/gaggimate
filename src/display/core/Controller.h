@@ -118,7 +118,7 @@ class Controller {
     void setupInfos();
 
     // Functional methods
-    void updateRelay();
+    void updateControl();
 
     // Event handlers
     void onTempRead(float temperature);
@@ -138,6 +138,7 @@ class Controller {
 
     int mode = MODE_BREW;
     int currentTemp = 0;
+    float pressure = 0.0f;
 
     SystemInfo systemInfo{};
 

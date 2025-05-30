@@ -104,7 +104,8 @@ float DimmedPump::calculatePowerForPressure(float targetPressure, float currentP
     float pressureLevel = std::clamp(round(_currentPressure), 0.0f, static_cast<float>(_pressureGains.size()));
     float pressureGainPerTick = _pressureGains[pressureLevel];
     float maxPressureGain = pressureGainPerTick * static_cast<float>(_cps) / 20.0f;
-    ESP_LOGI("DimmedPump", "Pressure: %.2f, Gain: %.6f, Expected Gain: %.6f, Pressure Loss: %.6f, Error: %.6f, Per Tick: %.6f", currentPressure, pressureGain, _expectedPressureGain, pressureLoss, error, pressureGainPerTick);
+    ESP_LOGI("DimmedPump", "Pressure: %.2f, Gain: %.6f, Expected Gain: %.6f, Pressure Loss: %.6f, Error: %.6f, Per Tick: %.6f",
+             currentPressure, pressureGain, _expectedPressureGain, pressureLoss, error, pressureGainPerTick);
     if (error + pressureLoss > maxPressureGain) {
         baseResponse = 100.0f;
     } else if (error + pressureLoss > 0.0f) {

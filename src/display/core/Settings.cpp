@@ -40,6 +40,7 @@ Settings::Settings() {
     homeAssistantPort = preferences.getInt("ha_p", 1883);
     homeAssistantUser = preferences.getString("ha_u", "");
     homeAssistantPassword = preferences.getString("ha_pw", "");
+    standbyTimeout = preferences.getInt("sbt", DEFAULT_STANDBY_TIMEOUT_MS);
     timezone = preferences.getString("tz", DEFAULT_TIMEZONE);
     selectedProfile = preferences.getString("sp", "");
     preferences.end();
@@ -52,7 +53,13 @@ void Settings::batchUpdate(const SettingsCallback &callback) {
     save();
 }
 
-void Settings::save() { dirty = true; }
+void Settings::save(bool noDelay) {
+    if (noDelay) {
+        doSave();
+        return;
+    }
+    dirty = true;
+}
 
 void Settings::setTargetBrewTemp(const int target_brew_temp) {
     targetBrewTemp = target_brew_temp;
@@ -286,6 +293,7 @@ void Settings::doSave() {
     preferences.putString("ha_pw", homeAssistantPassword);
     preferences.putString("tz", timezone);
     preferences.putString("sp", selectedProfile);
+    preferences.putInt("sbt", standbyTimeout);
     preferences.end();
 }
 
