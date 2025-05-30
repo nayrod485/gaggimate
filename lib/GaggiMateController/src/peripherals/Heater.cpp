@@ -47,7 +47,7 @@ void Heater::setupAutotune(int tuningTemp, int samples) {
     } else {
         autotuner->setWindowsize(3);
         autotuner->setEpsilon(0.1f);
-        autotuner->setRequiredConfirmations(3);
+        autotuner->setRequiredConfirmations(samples);
         autotuner->reset();
     }
 }
