@@ -7,11 +7,11 @@
     {
       "chipFamily": "ESP32-S3",
       "parts": [
-        { "path": "/pr-223/display-bootloader.bin", "offset": 0 },
-        { "path": "/pr-223/display-partitions.bin", "offset": 32768 },
-        { "path": "/boot_app0.bin", "offset": 57344 },
-        { "path": "/pr-223/display-firmware.bin", "offset": 65536 },
-        { "path": "/pr-223/display-filesystem.bin", "offset": 13172736 }
+        { "path": "/gaggimate/pr-223/display-bootloader.bin", "offset": 0 },
+        { "path": "/gaggimate/pr-223/display-partitions.bin", "offset": 32768 },
+        { "path": "/gaggimate/boot_app0.bin", "offset": 57344 },
+        { "path": "/gaggimate/pr-223/display-firmware.bin", "offset": 65536 },
+        { "path": "/gaggimate/pr-223/display-filesystem.bin", "offset": 13172736 }
       ]
     }
   ]
