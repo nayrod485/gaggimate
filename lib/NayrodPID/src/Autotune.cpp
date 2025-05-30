@@ -1,8 +1,7 @@
-#include "autotune.h"
+#include "Autotune.h"
 #include <Arduino.h>
 #include <algorithm>
 #include <cmath>
-#include <cstdio>
 #include <cstring>
 #include <numeric>
 
