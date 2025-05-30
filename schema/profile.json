@@ -21,6 +21,9 @@
     "description": {
       "type": "string"
     },
+    "temperature": {
+      "type": "number"
+    },
     "favorite": {
       "type": "boolean"
     },

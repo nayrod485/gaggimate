@@ -90,8 +90,8 @@ lv_obj_t *ui_BrewScreen_profileInfo;
 lv_obj_t *ui_BrewScreen_Label1;
 lv_obj_t *ui_BrewScreen_Container3;
 lv_obj_t *ui_BrewScreen_profileName;
+void ui_event_BrewScreen_profileSelectBtn(lv_event_t *e);
 lv_obj_t *ui_BrewScreen_profileSelectBtn;
-lv_obj_t *ui_BrewScreen_ImgButton4;
 lv_obj_t *ui_BrewScreen_adjustments;
 lv_obj_t *ui_BrewScreen_tempContainer;
 lv_obj_t *ui_BrewScreen_targetTemp;
@@ -383,6 +383,14 @@ void ui_event_BrewScreen_volumetricButton(lv_event_t *e) {
 
     if (event_code == LV_EVENT_CLICKED) {
         onVolumetricClick(e);
+    }
+}
+
+void ui_event_BrewScreen_profileSelectBtn(lv_event_t *e) {
+    lv_event_code_t event_code = lv_event_get_code(e);
+
+    if (event_code == LV_EVENT_CLICKED) {
+        onProfileSelect(e);
     }
 }
 

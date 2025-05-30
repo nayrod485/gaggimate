@@ -37,6 +37,7 @@ struct Profile {
     String label;
     String type; // "standard" | "pro"
     String description;
+    float temperature;
     bool favorite = false;
     bool selected = false;
     std::vector<Phase> phases;
@@ -47,6 +48,7 @@ inline bool parseProfile(const JsonObject &obj, Profile &profile) {
     profile.label = obj["label"].as<String>();
     profile.type = obj["type"].as<String>();
     profile.description = obj["description"].as<String>();
+    profile.temperature = obj["temperature"].as<float>();
     profile.favorite = obj["favorite"] | false;
     profile.selected = obj["selected"] | false;
 
@@ -92,6 +94,7 @@ inline void writeProfile(JsonObject &obj, const Profile &profile) {
     obj["label"] = profile.label;
     obj["type"] = profile.type;
     obj["description"] = profile.description;
+    obj["temperature"] = profile.temperature;
     obj["favorite"] = profile.favorite;
     obj["selected"] = profile.selected;
 

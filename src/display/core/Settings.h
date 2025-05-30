@@ -57,6 +57,7 @@ class Settings {
     bool isMomentaryButtons() const { return momentaryButtons; }
     String getTimezone() const { return timezone; }
     String getSelectedProfile() const { return selectedProfile; }
+    bool isProfilesMigrated() const { return profilesMigrated; }
     void setTargetBrewTemp(int target_brew_temp);
     void setTargetSteamTemp(int target_steam_temp);
     void setTargetWaterTemp(int target_water_temp);
@@ -95,12 +96,14 @@ class Settings {
     void setMomentaryButtons(bool momentary_buttons);
     void setTimezone(String timezone);
     void setSelectedProfile(String selected_profile);
+    void setProfilesMigrated(bool profiles_migrated);
 
   private:
     Preferences preferences;
     bool dirty = false;
 
     String selectedProfile;
+    bool profilesMigrated = false;
     int targetSteamTemp = 155;
     int targetWaterTemp = 80;
     int temperatureOffset = DEFAULT_TEMPERATURE_OFFSET;

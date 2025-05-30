@@ -1,9 +1,16 @@
 #include "ProfileManager.h"
 #include <ArduinoJson.h>
+#include <display/core/utils.h>
 
 ProfileManager::ProfileManager(fs::FS &fs, const char *dir, Settings &settings) : _fs(fs), _dir(dir), _settings(settings) {}
 
-bool ProfileManager::begin() { return ensureDirectory(); }
+void ProfileManager::setup() {
+    ensureDirectory();
+    if (!_settings.isProfilesMigrated()) {
+        migrate();
+        _settings.setProfilesMigrated(true);
+    }
+}
 
 bool ProfileManager::ensureDirectory() {
     if (!_fs.exists(_dir)) {
@@ -13,6 +20,70 @@ bool ProfileManager::ensureDirectory() {
 }
 
 String ProfileManager::profilePath(const String &uuid) { return _dir + "/" + uuid + ".json"; }
+
+void ProfileManager::migrate() {
+    Profile profile{};
+    profile.id = generateShortID();
+    profile.label = "Default";
+    profile.description = "Default profile generated from previous settings";
+    profile.temperature = _settings.getTargetBrewTemp();
+    profile.favorite = true;
+    profile.type = "standard";
+    if (_settings.getPressurizeTime() > 0) {
+        Phase pressurizePhase1{};
+        pressurizePhase1.name = "Pressurize";
+        pressurizePhase1.phase = PhaseType::PHASE_TYPE_PREINFUSION;
+        pressurizePhase1.valve = 0;
+        pressurizePhase1.duration = _settings.getPressurizeTime();
+        pressurizePhase1.pumpIsSimple = true;
+        pressurizePhase1.pumpSimple = 100;
+        profile.phases.push_back(pressurizePhase1);
+    }
+    if (_settings.getInfusePumpTime() > 0) {
+        Phase infusePumpPhase{};
+        infusePumpPhase.name = "Bloom";
+        infusePumpPhase.phase = PhaseType::PHASE_TYPE_BREW;
+        infusePumpPhase.valve = 1;
+        infusePumpPhase.duration = _settings.getInfusePumpTime();
+        infusePumpPhase.pumpIsSimple = true;
+        infusePumpPhase.pumpSimple = 100;
+        profile.phases.push_back(infusePumpPhase);
+    }
+    if (_settings.getInfuseBloomTime() > 0) {
+        Phase infuseBloomPhase1{};
+        infuseBloomPhase1.name = "Bloom";
+        infuseBloomPhase1.phase = PhaseType::PHASE_TYPE_BREW;
+        infuseBloomPhase1.valve = 1;
+        infuseBloomPhase1.duration = _settings.getInfuseBloomTime();
+        infuseBloomPhase1.pumpIsSimple = true;
+        infuseBloomPhase1.pumpSimple = 0;
+        profile.phases.push_back(infuseBloomPhase1);
+    }
+    if (_settings.getPressurizeTime() > 0) {
+        Phase pressurizePhase1{};
+        pressurizePhase1.name = "Pressurize";
+        pressurizePhase1.phase = PhaseType::PHASE_TYPE_BREW;
+        pressurizePhase1.valve = 0;
+        pressurizePhase1.duration = _settings.getPressurizeTime();
+        pressurizePhase1.pumpIsSimple = true;
+        pressurizePhase1.pumpSimple = 100;
+        profile.phases.push_back(pressurizePhase1);
+    }
+    Phase brewPhase{};
+    brewPhase.name = "Brew";
+    brewPhase.phase = PhaseType::PHASE_TYPE_BREW;
+    brewPhase.valve = 1;
+    brewPhase.duration = _settings.getTargetDuration();
+    brewPhase.pumpIsSimple = true;
+    brewPhase.pumpSimple = 100;
+    Target target{};
+    target.type = TargetType::TARGET_TYPE_VOLUMETRIC;
+    target.value = _settings.getTargetVolume();
+    brewPhase.targets.push_back(target);
+    profile.phases.push_back(brewPhase);
+    saveProfile(profile);
+    _settings.setSelectedProfile(profile.id);
+}
 
 std::vector<String> ProfileManager::listProfiles() {
     std::vector<String> uuids;
@@ -47,9 +118,13 @@ bool ProfileManager::loadProfile(const String &uuid, Profile &outProfile) {
     return parseProfile(doc.as<JsonObject>(), outProfile);
 }
 
-bool ProfileManager::saveProfile(const Profile &profile) {
+bool ProfileManager::saveProfile(Profile &profile) {
     if (!ensureDirectory())
         return false;
+
+    if (!profile.id) {
+        profile.id = generateShortID();
+    }
 
     File file = _fs.open(profilePath(profile.id), "w");
     if (!file)

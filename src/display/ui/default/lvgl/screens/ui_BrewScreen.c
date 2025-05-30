@@ -201,16 +201,6 @@ void ui_BrewScreen_screen_init(void) {
     ui_object_set_themeable_style_property(ui_BrewScreen_profileSelectBtn, LV_PART_MAIN | LV_STATE_DEFAULT,
                                            LV_STYLE_IMG_RECOLOR_OPA, _ui_theme_alpha_NiceWhite);
 
-    ui_BrewScreen_ImgButton4 = lv_imgbtn_create(ui_BrewScreen_Container3);
-    lv_imgbtn_set_src(ui_BrewScreen_ImgButton4, LV_IMGBTN_STATE_RELEASED, NULL, &ui_img_340148213, NULL);
-    lv_obj_set_height(ui_BrewScreen_ImgButton4, 40);
-    lv_obj_set_width(ui_BrewScreen_ImgButton4, LV_SIZE_CONTENT); /// 1
-    lv_obj_set_align(ui_BrewScreen_ImgButton4, LV_ALIGN_CENTER);
-    ui_object_set_themeable_style_property(ui_BrewScreen_ImgButton4, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_IMG_RECOLOR,
-                                           _ui_theme_color_NiceWhite);
-    ui_object_set_themeable_style_property(ui_BrewScreen_ImgButton4, LV_PART_MAIN | LV_STATE_DEFAULT, LV_STYLE_IMG_RECOLOR_OPA,
-                                           _ui_theme_alpha_NiceWhite);
-
     ui_BrewScreen_adjustments = lv_obj_create(ui_BrewScreen_controlContainer);
     lv_obj_remove_style_all(ui_BrewScreen_adjustments);
     lv_obj_set_width(ui_BrewScreen_adjustments, 300);
@@ -350,6 +340,7 @@ void ui_BrewScreen_screen_init(void) {
     lv_obj_add_event_cb(ui_BrewScreen_startButton, ui_event_BrewScreen_startButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_BrewScreen_timedButton, ui_event_BrewScreen_timedButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_BrewScreen_volumetricButton, ui_event_BrewScreen_volumetricButton, LV_EVENT_ALL, NULL);
+    lv_obj_add_event_cb(ui_BrewScreen_profileSelectBtn, ui_event_BrewScreen_profileSelectBtn, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_BrewScreen_downTempButton, ui_event_BrewScreen_downTempButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_BrewScreen_upTempButton, ui_event_BrewScreen_upTempButton, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_BrewScreen_upDurationButton, ui_event_BrewScreen_upDurationButton, LV_EVENT_ALL, NULL);

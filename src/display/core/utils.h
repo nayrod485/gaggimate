@@ -12,17 +12,18 @@ template <typename T, typename... Args> std::unique_ptr<T> make_unique(Args &&..
 
 inline uint8_t randomByte() { return static_cast<uint8_t>(esp_random() & 0xFF); }
 
-String generateUUIDv4() {
-    std::array<uint8_t, 16> bytes;
-    for (auto &b : bytes)
-        b = randomByte();
-    bytes[6] = (bytes[6] & 0x0F) | 0x40;
-    bytes[8] = (bytes[8] & 0x3F) | 0x80;
-    char uuidStr[37];
-    snprintf(uuidStr, sizeof(uuidStr), "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", bytes[0], bytes[1],
-             bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7], bytes[8], bytes[9], bytes[10], bytes[11], bytes[12],
-             bytes[13], bytes[14], bytes[15]);
-    return String(uuidStr);
+String generateShortID(uint8_t length = 10) {
+    static const char charset[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    static constexpr size_t charsetSize = sizeof(charset) - 1;
+
+    uint32_t seed = micros() ^ ((uint32_t)ESP.getEfuseMac() << 8);
+    randomSeed(seed);
+
+    String id;
+    for (uint8_t i = 0; i < length; ++i) {
+        id += charset[random(charsetSize)];
+    }
+    return id;
 }
 
 #endif // UTILS_H

@@ -10,10 +10,10 @@ class ProfileManager {
   public:
     ProfileManager(fs::FS &fs, const char *dir, Settings &settings);
 
-    bool begin();
+    void setup();
     std::vector<String> listProfiles();
     bool loadProfile(const String &uuid, Profile &outProfile);
-    bool saveProfile(const Profile &profile);
+    bool saveProfile(Profile &profile);
     bool deleteProfile(const String &uuid);
     bool profileExists(const String &uuid);
     void selectProfile(const String &uuid) const;
@@ -26,6 +26,7 @@ class ProfileManager {
     String _dir;
     bool ensureDirectory();
     String profilePath(const String &uuid);
+    void migrate();
 };
 
 #endif // PROFILEMANAGER_H

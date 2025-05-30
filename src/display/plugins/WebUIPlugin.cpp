@@ -181,13 +181,13 @@ void WebUIPlugin::handleProfileRequest(uint32_t clientId, JsonDocument &request)
 
     if (type == "req:profiles:list") {
         auto arr = response["profiles"].to<JsonArray>();
-        for (auto &uuid : profileManager->listProfiles()) {
-            arr.add(uuid);
+        for (auto const &id : profileManager->listProfiles()) {
+            arr.add(id);
         }
     } else if (type == "req:profiles:load") {
-        auto uuid = request["uuid"].as<String>();
+        auto id = request["id"].as<String>();
         Profile profile;
-        if (profileManager->loadProfile(uuid, profile)) {
+        if (profileManager->loadProfile(id, profile)) {
             auto obj = response["profile"].to<JsonObject>();
             writeProfile(obj, profile);
         } else {
@@ -200,14 +200,16 @@ void WebUIPlugin::handleProfileRequest(uint32_t clientId, JsonDocument &request)
         if (!profileManager->saveProfile(profile)) {
             response["error"] = "Save failed";
         }
+        auto respObj = response["profile"].to<JsonObject>();
+        writeProfile(respObj, profile);
     } else if (type == "req:profiles:delete") {
-        auto uuid = request["uuid"].as<String>();
-        if (!profileManager->deleteProfile(uuid)) {
+        auto id = request["id"].as<String>();
+        if (!profileManager->deleteProfile(id)) {
             response["error"] = "Delete failed";
         }
     } else if (type == "req:profiles:select") {
-        auto uuid = request["uuid"].as<String>();
-        profileManager->selectProfile(uuid);
+        auto id = request["id"].as<String>();
+        profileManager->selectProfile(id);
     }
 
     String msg;
