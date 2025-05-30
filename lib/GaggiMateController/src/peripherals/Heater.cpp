@@ -83,19 +83,19 @@ void Heater::setSetpoint(float setpoint) {
 }
 
 void Heater::setTunings(float Kp, float Ki, float Kd) {
-    if (this->Kp != Kp || this->Ki != Ki || this->Kd != Kd) {
-        if (_library == PIDLibrary::Legacy) {
+    if (_library == PIDLibrary::Legacy) {
+        if (pid->GetKp() != Kp || pid->GetKi() != Ki || pid->GetKd() != Kd) {
             pid->SetTunings(Kp, Ki, Kd);
             pid->SetMode(QuickPID::Control::manual);
             pid->SetMode(QuickPID::Control::automatic);
-        } else {
+            ESP_LOGI(LOG_TAG, "Set tunings to Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
+        }
+    } else {
+        if (simplePid->getKp() != Kp || simplePid->getKi() != Ki || simplePid->getKd() != Kd) {
             simplePid->setControllerPIDGains(Kp, Ki, Kd, 0.0f);
             simplePid->reset();
+            ESP_LOGI(LOG_TAG, "Set tunings to Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
         }
-        this->Kp = Kp;
-        this->Ki = Ki;
-        this->Kd = Kd;
-        ESP_LOGI(LOG_TAG, "Set tunings to Kp: %f, Ki: %f, Kd: %f", Kp, Ki, Kd);
     }
 }
 
@@ -205,7 +205,7 @@ float Heater::softPwm(uint32_t windowSize) {
 void Heater::plot(float optimumOutput, float outputScale, uint8_t everyNth) {
     if (plotCount >= everyNth) {
         plotCount = 1;
-        ESP_LOGI(LOG_TAG, "Setpoint: %.2f, Input: %.2f, Output: %.2f", setpoint, temperature, optimumOutput * outputScale);
+        ESP_LOGI(LOG_TAG, "Setpoint: %.2f, Input: %.2f, Output: %.2f, Kp: %.2f, Ki: %.2f, Kd: %.2f, Filtered Setpoint: %.2f", setpoint, temperature, optimumOutput * outputScale, simplePid->getKp(), simplePid->getKi(), simplePid->getKd(), simplePid->getSetpointFiltered());
     } else
         plotCount++;
 }

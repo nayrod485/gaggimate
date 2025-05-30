@@ -47,7 +47,7 @@ class SimplePID {
   private:
     // setpoint filtering
     void setpointFiltering(float freq);
-    bool isfilterSetpointActive;                         // Flag to activate/deactivate the setpoint filter
+    bool isfilterSetpointActive = false;                         // Flag to activate/deactivate the setpoint filter
     static const int sizeOfSetPointFilter = 1;           // Size of the filter
     std::deque<float> setpointFilteredValues;            // Setpoint synchronized state
     float setpointDerivative = 0.0f;                     // Setpoint derivative
