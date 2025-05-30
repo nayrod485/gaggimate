@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="utf-8">
+  <title>GaggiMate Branch Flashing</title>
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+
+  <link rel="stylesheet" href="css/normalize.css">
+  <link rel="stylesheet" href="css/skeleton.css">
+
+
+</head>
+<body>
+
+<div class="container">
+  <div class="row">
+    <div class="one-half column" style="margin-top: 100px;">
+      <h4>Nightly</h4>
+      <b>Display</b><br />
+      <esp-web-install-button
+        manifest="/manifests/nightly/display-manifest.json"
+      ></esp-web-install-button>
+      <br />
+      <b>Controller</b><br />
+      <esp-web-install-button
+        manifest="/manifests/nightly/controller-manifest.json"
+      ></esp-web-install-button>
+    </div>
+  </div>
+  <div class="row">
+    <div class="one-half column" style="margin-top: 100px;">
+      <h4>feature/improve-pid</h4>
+      <b>Display</b><br />
+      <esp-web-install-button
+        manifest="/manifests/improve-pid/display-manifest.json"
+      ></esp-web-install-button>
+      <br />
+      <b>Controller</b><br />
+      <esp-web-install-button
+        manifest="/manifests/improve-pid/controller-manifest.json"
+      ></esp-web-install-button>
+    </div>
+  </div>
+</div>
+
+<script
+  type="module"
+  src="https://unpkg.com/esp-web-tools@10/dist/web/install-button.js?module"
+></script>
+</body>
+</html>
