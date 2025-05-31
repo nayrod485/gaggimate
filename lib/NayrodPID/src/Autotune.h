@@ -21,7 +21,7 @@ class Autotune {
     void setEpsilon(float eps);
     void setRequiredConfirmations(unsigned int confirmations);
     void setTimeOut(float timeOut);
-
+    void setTuningGoal(float percentage);
     bool maxPowerOn = false; // Flag to indicate if system should be turned on with maximum power
 
     float getSystemDelay() const { return system_pure_delay; }
@@ -32,10 +32,9 @@ class Autotune {
     void computeControllerGains(float system_pure_delay, float system_gain);
 
     unsigned int N = 3;   // Size of the moving window to compute the derivative of temperature
-    float epsilon = 0.1f; // Temperature variation threshold to detect the reaction
-    unsigned int requiredConfirmations =
-        3; // Number consecutive detection of rising temperature to consider the reaction detected
-
+    float epsilon = 0.4f; // Temperature variation threshold to detect the reaction
+    unsigned int requiredConfirmations =3; // Number consecutive detection of rising temperature to consider the reaction detected
+    float tuningPercentage = 50;
     std::deque<float> values, times, slopes, slopeTimes;
 
     unsigned int currentConfirmations;
@@ -47,7 +46,6 @@ class Autotune {
     float maxTimeOut_s = 20; // (s) Maximum time to wait for the reaction to be detected before giving up
 
     float system_pure_delay = 0.0f;
-    ;
     float system_gain = 0.0f;
-    ;
+    
 };
