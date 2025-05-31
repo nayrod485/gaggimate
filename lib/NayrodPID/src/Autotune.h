@@ -26,6 +26,7 @@ class Autotune {
 
     float getSystemDelay() const { return system_pure_delay; }
     float getSystemGain() const { return system_gain; };
+    float getCrossoverFreq() const{return cross_freq;};
 
   private:
     float computeSlope(const std::deque<float> &x, const std::deque<float> &y);
@@ -47,5 +48,6 @@ class Autotune {
 
     float system_pure_delay = 0.0f;
     float system_gain = 0.0f;
+    float cross_freq=0.0f;
     
 };

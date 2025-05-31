@@ -1,5 +1,7 @@
 #include "Heater.h"
 #include <Arduino.h>
+#include <algorithm> 
+
 
 Heater::Heater(TemperatureSensor *sensor, uint8_t heaterPin, const heater_error_callback_t &error_callback,
                const pid_result_callback_t &pid_callback, PIDLibrary library)
@@ -179,12 +181,17 @@ void Heater::loopAutotuneNimrod() {
 
     setTunings(autotuner->getKp() * 1000.0f, autotuner->getKi() * 1000.0f, autotuner->getKd() * 1000.0f);
     simplePid->computeSetpointDelay(autotuner->getSystemDelay());
-    simplePid->setSetpointFilterFrequency(0.8f*autotuner->getSystemGain()/(2*PI*TUNER_INPUT_SPAN/2));
-    simplePid->setSetpointRateLimits(-INFINITY,autotuner->getSystemGain());
+    simplePid->setSetpointRateLimits(-INFINITY, autotuner->getSystemGain()/2);
     simplePid->setKFF(autotuner->getKff()*1000);
     simplePid->setMode(SimplePID::Control::automatic);
+    // Filter frequency has to be conservative between boiler capacity and user defined tuning goals (NOTA: PID should always be way faster than setpoint)
+    float filtFreq = 0.8*autotuner->getSystemGain()/(2*PI*TUNER_INPUT_SPAN/2); // Filter frequency based on tunner gain (ie max capacity of the system to follow setoint curve)
+    float pidFreq = autotuner->getCrossoverFreq(); // Filter frequency based on PID tunning (ie: capacity of the PID to track the setpoint depending on the PID gains)
+    float setpointFilterFreq = std::min(static_cast<float>(filtFreq), static_cast<float>(pidFreq));
+    simplePid->setSetpointFilterFrequency(setpointFilterFreq);
+    
     ESP_LOGI(LOG_TAG, "Autotuning finished: Kp=%.4f, Ki=%.4f, Kd=%.4f, Kff=%.4f\n", autotuner->getKp()*1000.0f, autotuner->getKi()*1000.0f, autotuner->getKd()*1000.0f, autotuner->getKff()*1000.0f);
-    ESP_LOGI(LOG_TAG, "System delay: %.2f s, System gain: %.4f Stepoint Freq: %.4f Hz\n", autotuner->getSystemDelay(), autotuner->getSystemGain(),0.8f*autotuner->getSystemGain()/(2*PI*TUNER_INPUT_SPAN/2));
+    ESP_LOGI(LOG_TAG, "System delay: %.2f s, System gain: %.4f Setpoint Freq: %.4f Hz\n", autotuner->getSystemDelay(), autotuner->getSystemGain(), setpointFilterFreq);
 }
 
 float Heater::softPwm(uint32_t windowSize) {

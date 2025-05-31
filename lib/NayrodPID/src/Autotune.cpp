@@ -96,7 +96,7 @@ void Autotune::computeControllerGains(float delay, float gain) {
     const float integ_delay = 10.0f;
 
     float mphi = min_phase_margin + integ_delay;
-    float cross_freq = (180.0f - mphi - 90.0f) / (delay * 360.0f);
+    cross_freq = (180.0f - mphi - 90.0f) / (delay * 360.0f);
 
     float kp = (2.0f * M_PI * cross_freq) / gain;
     float tanphi = std::tan((90.0f - integ_delay) * M_PI / 180.0f);
