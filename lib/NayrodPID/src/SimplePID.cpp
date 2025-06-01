@@ -87,12 +87,12 @@ bool SimplePID::update() {
 
 void SimplePID::setpointFiltering(float freq) {
 
-    // Apply the low-pass filter to the setpoint
-    float deriv = 2.0f * PI * freq * (*setpointTarget - setpointFilteredValues.back());
-
+    float wn = (2.0f * PI * freq);
+    float dderiv = wn * wn * (*setpointTarget - setpointFilteredValues.back());   
+    setpointFiltstate1 += dderiv / ctrl_freq_sampling;
+    setpointDerivative = setpointFiltstate1 - wn * 2 * setpointFiltXi * setpointFilteredValues.back();
     // Output the filtered setpoint values
-    setpointDerivative = constrain(deriv, setpointRatelimits[0], setpointRatelimits[1]);
-
+    setpointDerivative = constrain(setpointDerivative, setpointRatelimits[0], setpointRatelimits[1]);
     // Integrate (forward euler) the setpoint derivative to get the filtered setpoint value
     float integ = setpointFilteredValues.back() + setpointDerivative / ctrl_freq_sampling;
     // Add the new setpoint to the history to introduce a delay between the setpoint derivative and the filtered setpoint
@@ -102,7 +102,6 @@ void SimplePID::setpointFiltering(float freq) {
     }
     setpointFiltered = setpointFilteredValues.front(); // Get the filtered setpoint value
 
-
 }
 
 void SimplePID::initSetPointFilter(float initialValue) {
@@ -110,6 +109,7 @@ void SimplePID::initSetPointFilter(float initialValue) {
     for (int i = 0; i < setpointDelaySamples + 1; ++i) {
         setpointFilteredValues.push_back(initialValue);
     }
+    setpointFiltstate1 = 2*setpointFiltXi*2*PI*setpointFilterFreq*initialValue;
 }
 
 void SimplePID::resetFeedbackController() {
@@ -122,6 +122,7 @@ void SimplePID::reset() {
     resetFeedbackController();
     isInitialized = false;
     setpointFilteredValues.clear();
+    setpointFiltstate1 = 0.0f;
 }
 
 // GETTER-SETTER FUNCTIONS

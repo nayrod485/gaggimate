@@ -50,6 +50,8 @@ class SimplePID {
     bool isfilterSetpointActive = false;                         // Flag to activate/deactivate the setpoint filter
     std::deque<float> setpointFilteredValues;            // Setpoint synchronized state
     float setpointDerivative = 0.0f;                     // Setpoint derivative
+    float setpointFiltstate1 = 0.0f;                     // Setpoint State1
+    float setpointFiltXi = 1.2f;                         // Setpoint filter damping
     float setpointFiltered = 0.0f;                       // Filtered setpoint value
     uint32_t setpointDelaySamples = 5;                   // Number of samples to delay the setpoint
     float setpointFilterFreq = 0.005f;                     // Setpoint filter frequency

@@ -106,7 +106,7 @@ void Autotune::computeControllerGains(float delay, float gain) {
     float ku = kp / 0.7f;
     float tu = 1.75f * ku / ki;
     float kd = 0.105f * ku * tu * 0.35f; // Reduced to only 35% of Kd because of gain margin migh by too close to unstability, test showed it's unecessary to have derivative
-    float kff = 0.5f / gain;             // 50% Maximum gain to make sure estimation error don't hinder the performance compared to the usual 70% by the book tuning 
+    float kff = 1 / gain;             // Can go full gain inverse because we only estimate the speed and miss the static gain so we're always lower than the actual real system gain 
 
     Kp = kp;
     Ki = ki;
