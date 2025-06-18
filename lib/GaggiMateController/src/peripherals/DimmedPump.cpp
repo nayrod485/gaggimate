@@ -4,7 +4,7 @@
 
 DimmedPump::DimmedPump(uint8_t ssr_pin, uint8_t sense_pin, PressureSensor *pressure_sensor)
     : _ssr_pin(ssr_pin), _sense_pin(sense_pin), _psm(_sense_pin, _ssr_pin, 100, FALLING, 1, 4), _pressureSensor(pressure_sensor),
-      _pressureController(0.03f, &_targetPressure, &_currentPressure, &_controllerPower, &_valveStatus) {
+      _pressureController(0.03f, &_ctrlTarget, &_currentPressure, &_controllerPower, &_valveStatus) {
     _psm.set(0);
 }
 
@@ -48,7 +48,7 @@ void DimmedPump::loopTask(void *arg) {
 }
 
 void DimmedPump::updatePower() {
-    _pressureController.update();
+    _pressureController.update(static_cast<PressureController::ControlMode>(_mode));
     switch (_mode) {
     case ControlMode::PRESSURE:
         _power = calculatePowerForPressure(_targetPressure, _currentPressure, _flowLimit);
@@ -77,26 +77,18 @@ float DimmedPump::calculatePowerForPressure(float targetPressure, float currentP
 }
 
 float DimmedPump::calculatePowerForFlow(float targetFlow, float currentPressure, float pressureLimit) const {
-    float maxFlow = calculateFlowRate(currentPressure) * _cps;
-    float powerRatio = std::clamp(targetFlow / maxFlow, 0.0f, 1.0f);
-    float basePower = powerRatio * 100.0f;
-
-    if (pressureLimit > 0 && currentPressure > pressureLimit) {
-        return 0.0f;
-    }
-
-    return basePower;
+     return _controllerPower;
 }
 
 void DimmedPump::setFlowTarget(float targetFlow, float pressureLimit) {
     _mode = ControlMode::FLOW;
-    _targetFlow = targetFlow;
+    _ctrlTarget = targetFlow;
     _pressureLimit = pressureLimit;
 }
 
 void DimmedPump::setPressureTarget(float targetPressure, float flowLimit) {
     _mode = ControlMode::PRESSURE;
-    _targetPressure = targetPressure;
+    _ctrlTarget = targetPressure;
     _flowLimit = flowLimit;
 }
 
