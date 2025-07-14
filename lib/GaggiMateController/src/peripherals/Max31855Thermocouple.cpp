@@ -49,10 +49,9 @@ void Max31855Thermocouple::loop() {
 }
 
 [[noreturn]] void Max31855Thermocouple::monitorTask(void *arg) {
-    TickType_t lastWake = xTaskGetTickCount();
     auto *thermocouple = static_cast<Max31855Thermocouple *>(arg);
     while (true) {
         thermocouple->loop();
-        xTaskDelayUntil(&lastWake, pdMS_TO_TICKS(MAX31855_UPDATE_INTERVAL));
+        vTaskDelay(MAX31855_UPDATE_INTERVAL / portTICK_PERIOD_MS);
     }
 }

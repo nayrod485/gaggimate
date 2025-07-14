@@ -24,19 +24,7 @@ export function Settings() {
   const formRef = useRef();
 
   useEffect(() => {
-    if (fetchedSettings) {
-      // Initialize standbyDisplayEnabled based on standby brightness value
-      // but preserve it if it already exists in the fetched data
-      const settingsWithToggle = {
-        ...fetchedSettings,
-        standbyDisplayEnabled: fetchedSettings.standbyDisplayEnabled !== undefined 
-          ? fetchedSettings.standbyDisplayEnabled 
-          : fetchedSettings.standbyBrightness > 0
-      };
-      setFormData(settingsWithToggle);
-    } else {
-      setFormData({});
-    }
+    setFormData(fetchedSettings || {});
   }, [fetchedSettings]);
 
   const onChange = (key) => {
@@ -66,19 +54,6 @@ export function Settings() {
       if (key === 'clock24hFormat') {
         value = !formData.clock24hFormat;
       }
-      if (key === 'standbyDisplayEnabled') {
-        value = !formData.standbyDisplayEnabled;
-        // Set standby brightness to 0 when toggle is off
-        const newFormData = {
-          ...formData,
-          [key]: value,
-        };
-        if (!value) {
-          newFormData.standbyBrightness = 0;
-        }
-        setFormData(newFormData);
-        return;
-      }
       setFormData({
         ...formData,
         [key]: value,
@@ -91,33 +66,19 @@ export function Settings() {
       e.preventDefault();
       setSubmitting(true);
       const form = formRef.current;
-      const formDataToSubmit = new FormData(form);
-      
-      // Ensure standbyBrightness is included even when the field is disabled
-      if (!formData.standbyDisplayEnabled) {
-        formDataToSubmit.set('standbyBrightness', '0');
-      }
-      
+      const formData = new FormData(form);
       if (restart) {
-        formDataToSubmit.append('restart', '1');
+        formData.append('restart', '1');
       }
       const response = await fetch(form.action, {
         method: 'post',
-        body: formDataToSubmit,
+        body: formData,
       });
       const data = await response.json();
-      
-      // Only preserve standbyDisplayEnabled if brightness is greater than 0
-      // If brightness is 0, let the useEffect recalculate it based on the saved value
-      const updatedData = {
-        ...data,
-        standbyDisplayEnabled: data.standbyBrightness > 0 ? formData.standbyDisplayEnabled : false
-      };
-      
-      setFormData(updatedData);
+      setFormData(data);
       setSubmitting(false);
     },
-    [setFormData, formRef, formData],
+    [setFormData, formRef],
   );
 
   const onExport = useCallback(() => {
@@ -197,14 +158,48 @@ export function Settings() {
                 onChange={onChange('targetWaterTemp')}
               />
             </div>
+
+            <div>
+              <label htmlFor="temperatureOffset" className="block font-medium text-gray-700 dark:text-gray-400">
+                Temperature Offset (°C)
+              </label>
+              <input
+                id="temperatureOffset"
+                name="temperatureOffset"
+                type="number"
+                className="input-field"
+                placeholder="0"
+                value={formData.temperatureOffset}
+                onChange={onChange('temperatureOffset')}
+              />
+            </div>
         </Card>
-      <Card xs={12} lg={6} title="User preferences">
-        <div>
-          <label htmlFor="startup-mode" className="block font-medium text-gray-700 dark:text-gray-400">
-            Startup Mode
-          </label>
-          <select id="startup-mode" name="startupMode" className="input-field" onChange={onChange('startupMode')}>
-            <option value="standby" selected={formData.startupMode === 'standby'}>
+        <Card xs={12} lg={6} title="Pressure settings">
+          <div>
+            <label htmlFor="pressureScaling" className="block font-medium text-gray-700 dark:text-gray-400">
+              Pressure scaling factor <small>Value depends on the pressure sensor being used.</small>
+            </label>
+            <input
+              id="pressureScaling"
+              name="pressureScaling"
+              type="number"
+              inputmode="decimal"
+              placeholder="0.0"
+              className="input-field"
+              min="0"
+              step="any"
+              value={formData.pressureScaling}
+              onChange={onChange('pressureScaling')}
+            />
+          </div>
+        </Card>
+        <Card xs={12} lg={6} title="User preferences">
+          <div>
+            <label htmlFor="startup-mode" className="block font-medium text-gray-700 dark:text-gray-400">
+              Startup Mode
+            </label>
+            <select id="startup-mode" name="startupMode" className="input-field" onChange={onChange('startupMode')}>
+              <option value="standby" selected={formData.startupMode === 'standby'}>
                 Standby
               </option>
               <option value="brew" selected={formData.startupMode === 'brew'}>
@@ -260,7 +255,6 @@ export function Settings() {
                 id="brewDelay"
                 name="brewDelay"
                 type="number"
-                step="any"
                 className="input-field"
                 placeholder="0"
                 value={formData.brewDelay}
@@ -275,7 +269,6 @@ export function Settings() {
                 id="grindDelay"
                 name="grindDelay"
                 type="number"
-                step="any"
                 className="input-field"
                 placeholder="0"
                 value={formData.grindDelay}
@@ -381,8 +374,6 @@ export function Settings() {
             </label>
             <p>Use 24h Format</p>
           </div>
-        </Card>
-        <Card xs={12} lg={6} title="Machine settings">
           <div>
             <label htmlFor="pid" className="block font-medium text-gray-700 dark:text-gray-400">
               PID Values (Kp, Ki, Kd)
@@ -395,134 +386,6 @@ export function Settings() {
               placeholder="2.0, 0.1, 0.01"
               value={formData.pid}
               onChange={onChange('pid')}
-            />
-          </div>
-          <div>
-            <label htmlFor="temperatureOffset" className="block font-medium text-gray-700 dark:text-gray-400">
-              Temperature Offset
-            </label>
-            <div className="flex">
-              <input
-                id="temperatureOffset"
-                name="temperatureOffset"
-                type="number"
-                className="input-field addition"
-                placeholder="0"
-                value={formData.temperatureOffset}
-                onChange={onChange('temperatureOffset')}
-              />
-              <span className="input-addition">°C</span>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="pressureScaling" className="block font-medium text-gray-700 dark:text-gray-400">
-              Pressure sensor rating <small>Enter the bar rating of the pressure sensor being used</small>
-            </label>
-            <div className="flex">
-              <input
-                id="pressureScaling"
-                name="pressureScaling"
-                type="number"
-                inputMode="decimal"
-                placeholder="0.0"
-                className="input-field addition"
-                min="0"
-                step="any"
-                value={formData.pressureScaling}
-                onChange={onChange('pressureScaling')}
-              />
-              <span className="input-addition">bar</span>
-            </div>
-          </div>
-          <div>
-            <label htmlFor="pressureScaling" className="block font-medium text-gray-700 dark:text-gray-400">
-              Steam Pump Assist <small>What percentage to run the pump at during steaming</small>
-            </label>
-            <div className="flex">
-              <input
-                id="steamPumpPercentage"
-                name="steamPumpPercentage"
-                type="number"
-                inputMode="decimal"
-                placeholder="0.0"
-                className="input-field addition"
-                min="0"
-                step="any"
-                value={formData.steamPumpPercentage}
-                onChange={onChange('steamPumpPercentage')}
-              />
-              <span className="input-addition">%</span>
-            </div>
-          </div>
-        </Card>
-        <Card xs={12} lg={6} title="Display settings">
-          <div>
-            <label htmlFor="mainBrightness" className="block font-medium text-gray-700 dark:text-gray-400">
-              Main Brightness (1-16)
-            </label>
-            <input
-              id="mainBrightness"
-              name="mainBrightness"
-              type="number"
-              className="input-field"
-              placeholder="16"
-              min="1"
-              max="16"
-              value={formData.mainBrightness}
-              onChange={onChange('mainBrightness')}
-            />
-          </div>
-          
-          <div>
-            <b>Standby Display</b>
-          </div>
-          <div className="flex flex-row gap-4">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                id="standbyDisplayEnabled"
-                name="standbyDisplayEnabled"
-                value="standbyDisplayEnabled"
-                type="checkbox"
-                className="sr-only peer"
-                checked={formData.standbyDisplayEnabled}
-                onChange={onChange('standbyDisplayEnabled')}
-              />
-              <div
-                className="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[4px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
-            </label>
-            <p>Enable standby display</p>
-          </div>
-          
-          <div>
-            <label htmlFor="standbyBrightness" className="block font-medium text-gray-700 dark:text-gray-400">
-              Standby Brightness (0-16)
-            </label>
-            <input
-              id="standbyBrightness"
-              name="standbyBrightness"
-              type="number"
-              className="input-field"
-              placeholder="8"
-              min="0"
-              max="16"
-              value={formData.standbyBrightness}
-              onChange={onChange('standbyBrightness')}
-              disabled={!formData.standbyDisplayEnabled}
-            />
-          </div>
-          <div>
-            <label htmlFor="standbyBrightnessTimeout" className="block font-medium text-gray-700 dark:text-gray-400">
-              Standby Brightness Timeout (seconds)
-            </label>
-            <input
-              id="standbyBrightnessTimeout"
-              name="standbyBrightnessTimeout"
-              type="number"
-              className="input-field"
-              placeholder="60"
-              min="1"
-              value={formData.standbyBrightnessTimeout}
-              onChange={onChange('standbyBrightnessTimeout')}
             />
           </div>
         </Card>

@@ -4,7 +4,6 @@
 #include <display/core/PluginManager.h>
 #include <display/core/ProfileManager.h>
 #include <display/core/constants.h>
-#include <display/drivers/Driver.h>
 #include <display/models/profile.h>
 
 #include "./lvgl/ui.h"
@@ -13,9 +12,6 @@ class Controller;
 
 constexpr int RERENDER_INTERVAL_IDLE = 2500;
 constexpr int RERENDER_INTERVAL_ACTIVE = 250;
-
-constexpr int TEMP_HISTORY_INTERVAL = 250;
-constexpr int TEMP_HISTORY_LENGTH = 20 * 1000 / TEMP_HISTORY_INTERVAL;
 
 int16_t calculate_angle(int set_temp, int range, int offset);
 
@@ -34,40 +30,19 @@ class DefaultUI {
     void onNextProfile();
     void onPreviousProfile();
     void onProfileSelect();
-    void setBrightness(int brightness) {
-        if (panelDriver) {
-            panelDriver->setBrightness(brightness);
-        }
-    };
-
-    void markDirty() { rerender = true; }
 
   private:
-    void setupPanel();
+    void setupPanel() const;
     void setupState();
     void setupReactive();
 
     void handleScreenChange();
 
-    void updateStandbyScreen();
+    void updateStandbyScreen() const;
     void updateStatusScreen() const;
 
     void adjustDials(lv_obj_t *dials);
-    void adjustTempTarget(lv_obj_t *dials);
-    void adjustTarget(lv_obj_t *obj, double percentage, double start, double range) const;
 
-    int tempHistory[TEMP_HISTORY_LENGTH] = {0};
-    int tempHistoryIndex = 0;
-    int prevTargetTemp = 0;
-    bool isTempHistoryInitialized = false;
-    int isTemperatureStable = false;
-    unsigned long lastTempLog = 0;
-
-    void updateTempHistory();
-    void updateTempStableFlag();
-    void adjustHeatingIndicator(lv_obj_t *contentPanel);
-
-    Driver *panelDriver = nullptr;
     Controller *controller;
     PluginManager *pluginManager;
     ProfileManager *profileManager;
@@ -98,7 +73,6 @@ class DefaultUI {
     int pressureAvailable = 0;
     float pressure = 0.0f;
     int pressureScaling = DEFAULT_PRESSURE_SCALING;
-    int heatingFlash = 0;
 
     int currentProfileIdx;
     String currentProfileId;
@@ -109,9 +83,6 @@ class DefaultUI {
     lv_obj_t **targetScreen = &ui_InitScreen;
     lv_obj_t *currentScreen = ui_InitScreen;
     void (*targetScreenInit)(void) = &ui_InitScreen_screen_init;
-
-    // Standby brightness control
-    unsigned long standbyEnterTime = 0;
 
     xTaskHandle taskHandle;
     static void loopTask(void *arg);

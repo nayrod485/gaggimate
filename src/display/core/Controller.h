@@ -132,7 +132,6 @@ class Controller {
     bool screenReady = false;
     bool volumetricOverride = false;
     bool processCompleted = false;
-    bool steamReady = false;
     int error = 0;
 
     xTaskHandle taskHandle;

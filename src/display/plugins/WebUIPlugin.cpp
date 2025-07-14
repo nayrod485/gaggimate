@@ -26,8 +26,8 @@ void WebUIPlugin::setup(Controller *_controller, PluginManager *_pluginManager) 
         },
         "display-firmware.bin", "display-filesystem.bin", "board-firmware.bin");
     pluginManager->on("controller:wifi:connect", [this](Event const &event) {
-        apMode = event.getInt("AP");
-        start();
+        const int apMode = event.getInt("AP");
+        start(apMode);
     });
     pluginManager->on("controller:ready", [this](Event const &) {
         ota->setControllerVersion(controller->getSystemInfo().version);
@@ -75,7 +75,7 @@ void WebUIPlugin::loop() {
     }
 }
 
-void WebUIPlugin::start() {
+void WebUIPlugin::start(bool apMode) {
     if (apMode) {
         server.on("/connecttest.txt", [](AsyncWebServerRequest *request) {
             request->redirect("http://logout.net");
@@ -108,21 +108,23 @@ void WebUIPlugin::start() {
     server.on("/api/scales/connect", [this](AsyncWebServerRequest *request) { handleBLEScaleConnect(request); });
     server.on("/api/scales/scan", [this](AsyncWebServerRequest *request) { handleBLEScaleScan(request); });
     server.on("/api/scales/info", [this](AsyncWebServerRequest *request) { handleBLEScaleInfo(request); });
-    server.onNotFound([](AsyncWebServerRequest *request) { request->send(SPIFFS, "/w/index.html"); });
+    server.on("/ota", [](AsyncWebServerRequest *request) { request->send(SPIFFS, "/w/index.html"); });
+    server.on("/settings", [](AsyncWebServerRequest *request) { request->send(SPIFFS, "/w/index.html"); });
+    server.on("/scales", [](AsyncWebServerRequest *request) { request->send(SPIFFS, "/w/index.html"); });
     server.serveStatic("/", SPIFFS, "/w").setDefaultFile("index.html").setCacheControl("max-age=0");
     ws.onEvent(
         [this](AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len) {
             if (type == WS_EVT_CONNECT) {
+                printf("Received new websocket connection\n");
                 client->setCloseClientOnQueueFull(true);
-                ESP_LOGI("WebUIPlugin", "WebSocket client connected (%d open connections)", server->getClients().size());
             } else if (type == WS_EVT_DISCONNECT) {
-                ESP_LOGI("WebUIPlugin", "WebSocket client disconnected (%d open connections)", server->getClients().size());
+                printf("Client disconnected\n");
             } else if (type == WS_EVT_DATA) {
                 auto *info = static_cast<AwsFrameInfo *>(arg);
                 if (info->final && info->index == 0 && info->len == len) {
                     if (info->opcode == WS_TEXT) {
                         data[len] = 0;
-                        ESP_LOGI("WebUIPlugin", "Received request: %", (char *)data);
+                        Serial.printf("Received request: %s\n", (char *)data);
                         JsonDocument doc;
                         DeserializationError err = deserializeJson(doc, data);
                         if (!err) {
@@ -143,12 +145,12 @@ void WebUIPlugin::start() {
         });
     server.addHandler(&ws);
     server.begin();
-    ESP_LOGI("WebUIPlugin", "Started webserver");
+    printf("Webserver started\n");
     if (apMode) {
         dnsServer = new DNSServer();
         dnsServer->setTTL(3600);
         dnsServer->start(53, "*", WIFI_AP_IP);
-        ESP_LOGI("WebUIPlugin", "Started catchall DNS for captive portal");
+        printf("Started catchall DNS for captive portal\n");
     }
 }
 
@@ -251,7 +253,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
                 settings->setWifiSsid(request->arg("wifiSsid"));
             if (request->hasArg("mdnsName"))
                 settings->setMdnsName(request->arg("mdnsName"));
-            if (request->hasArg("wifiPassword") && request->arg("wifiPassword") != "---unchanged---")
+            if (request->hasArg("wifiPassword"))
                 settings->setWifiPassword(request->arg("wifiPassword"));
             settings->setHomekit(request->hasArg("homekit"));
             settings->setBoilerFillActive(request->hasArg("boilerFillActive"));
@@ -284,14 +286,6 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
             settings->setClockFormat(request->hasArg("clock24hFormat"));
             if (request->hasArg("standbyTimeout"))
                 settings->setStandbyTimeout(request->arg("standbyTimeout").toInt() * 1000);
-            if (request->hasArg("mainBrightness"))
-                settings->setMainBrightness(request->arg("mainBrightness").toInt());
-            if (request->hasArg("standbyBrightness"))
-                settings->setStandbyBrightness(request->arg("standbyBrightness").toInt());
-            if (request->hasArg("standbyBrightnessTimeout"))
-                settings->setStandbyBrightnessTimeout(request->arg("standbyBrightnessTimeout").toInt() * 1000);
-            if (request->hasArg("steamPumpPercentage"))
-                settings->setSteamPumpPercentage(request->arg("steamPumpPercentage").toFloat());
             settings->save(true);
         });
         controller->setTargetTemp(controller->getTargetTemp());
@@ -311,7 +305,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
     doc["haPort"] = settings.getHomeAssistantPort();
     doc["pid"] = settings.getPid();
     doc["wifiSsid"] = settings.getWifiSsid();
-    doc["wifiPassword"] = apMode ? "---unchanged---" : settings.getWifiPassword();
+    doc["wifiPassword"] = settings.getWifiPassword();
     doc["mdnsName"] = settings.getMdnsName();
     doc["temperatureOffset"] = String(settings.getTemperatureOffset());
     doc["pressureScaling"] = String(settings.getPressureScaling());
@@ -328,10 +322,6 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
     doc["timezone"] = settings.getTimezone();
     doc["clock24hFormat"] = settings.isClock24hFormat();
     doc["standbyTimeout"] = settings.getStandbyTimeout() / 1000;
-    doc["mainBrightness"] = settings.getMainBrightness();
-    doc["standbyBrightness"] = settings.getStandbyBrightness();
-    doc["standbyBrightnessTimeout"] = settings.getStandbyBrightnessTimeout() / 1000;
-    doc["steamPumpPercentage"] = settings.getSteamPumpPercentage();
     serializeJson(doc, *response);
     request->send(response);
 

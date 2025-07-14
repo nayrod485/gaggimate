@@ -8,7 +8,6 @@ class Driver {
 
     virtual bool isCompatible();
     virtual void init();
-    virtual void setBrightness(int brightness);
 };
 
 #endif // DRIVER_H

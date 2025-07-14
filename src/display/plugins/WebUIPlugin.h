@@ -12,7 +12,7 @@
 #include <ESPAsyncWebServer.h>
 
 constexpr size_t UPDATE_CHECK_INTERVAL = 5 * 60 * 1000;
-constexpr size_t CLEANUP_PERIOD = 5 * 1000;
+constexpr size_t CLEANUP_PERIOD = 30 * 1000;
 constexpr size_t STATUS_PERIOD = 500;
 constexpr size_t DNS_PERIOD = 10;
 
@@ -28,7 +28,7 @@ class WebUIPlugin : public Plugin {
     void loop() override;
 
   private:
-    void start();
+    void start(bool apMode);
 
     // Websocket handlers
     void handleOTASettings(uint32_t clientId, JsonDocument &request);
@@ -59,7 +59,6 @@ class WebUIPlugin : public Plugin {
     long lastCleanup = 0;
     long lastDns = 0;
     bool updating = false;
-    bool apMode = false;
     String updateComponent = "";
 };
 

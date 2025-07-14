@@ -33,11 +33,6 @@ void Heater::setupAutotune(int goal, int windowSize) {
 }
 
 void Heater::loop() {
-    if (autotuning) {
-        loopAutotune();
-        return;
-    }
-
     if (temperature <= 0.0f || setpoint <= 0.0f) {
         simplePid->setMode(SimplePID::Control::manual);
         digitalWrite(heaterPin, LOW);
@@ -47,7 +42,11 @@ void Heater::loop() {
     }
     simplePid->setMode(SimplePID::Control::automatic);
 
-    loopPid();
+    if (autotuning) {
+        loopAutotune();
+    } else {
+        loopPid();
+    }
 }
 
 void Heater::setSetpoint(float setpoint) {
@@ -152,15 +151,17 @@ float Heater::softPwm(uint32_t windowSize) {
 void Heater::plot(float optimumOutput, float outputScale, uint8_t everyNth) {
     if (plotCount >= everyNth) {
         plotCount = 1;
+        ESP_LOGI(LOG_TAG, "Setpoint: %.2f, Input: %.2f, Output: %.2f, Kp: %.2f, Ki: %.2f, Kd: %.2f, Filtered Setpoint: %.2f",
+                 setpoint, temperature, optimumOutput * outputScale, simplePid->getKp(), simplePid->getKi(), simplePid->getKd(),
+                 simplePid->getSetpointFiltered());
     } else
         plotCount++;
 }
 
 void Heater::loopTask(void *arg) {
-    TickType_t lastWake = xTaskGetTickCount();
     auto *heater = static_cast<Heater *>(arg);
     while (true) {
         heater->loop();
-        xTaskDelayUntil(&lastWake, pdMS_TO_TICKS(10));
+        vTaskDelay(10 / portTICK_PERIOD_MS);
     }
 }

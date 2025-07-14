@@ -24,9 +24,6 @@ void Autotune::update(float temperature, float currentTime) {
     // Check if the autotune process is finished
     if (finished)
         return;
-    if (values.empty())
-        initialTemp = temperature;
-
 
     values.push_back(temperature); // Store the temperature value
     times.push_back(currentTime);  // Store the associated time stamp
@@ -55,7 +52,7 @@ void Autotune::update(float temperature, float currentTime) {
 
             if (slopes.size() >= N) {
                 float slopeOfSlope = computeSlope(slopeTimes, slopes);
-                if (slopeOfSlope < 0.05 && !maxSlopeFound && temperature > initialTemp + 10) {
+                if (slopeOfSlope < 0 && !maxSlopeFound && temperature > values[0] + 7) {
                     auto maxIt = std::max_element(slopes.begin(), slopes.end());
                     system_gain = *maxIt;
                     maxSlopeTime = slopeTimes[std::distance(slopes.begin(), maxIt)];
