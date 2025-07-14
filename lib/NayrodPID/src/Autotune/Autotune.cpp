@@ -1,5 +1,10 @@
+#ifdef ARDUINO
+  #include <Arduino.h>
+#else
+  #include <ArduinoStub.h>
+#endif
+
 #include "Autotune.h"
-#include <Arduino.h>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -112,7 +117,6 @@ void Autotune::computeControllerGains(float delay, float gain) {
                                          // test showed it's unecessary to have derivative
     float kff = 1 / gain; // Can go full gain inverse because we only estimate the speed and miss the static gain so we're always
                           // lower than the actual real system gain
-
     Kp = kp;
     Ki = ki;
     Kd = kd;

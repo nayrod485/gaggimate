@@ -1,7 +1,11 @@
 #ifndef SimpleKalmanFilter_h
 #define SimpleKalmanFilter_h
 
-#include "Arduino.h"
+#ifdef ARDUINO
+  #include <Arduino.h>
+#else
+  #include <ArduinoStub.h>
+#endif
 
 class SimpleKalmanFilter {
   public:

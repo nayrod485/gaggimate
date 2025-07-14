@@ -1,5 +1,9 @@
+#ifdef ARDUINO
+  #include <Arduino.h>
+#else
+  #include <ArduinoStub.h>
+#endif
 #include "SimplePID.h"
-#include <Arduino.h>
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -41,7 +45,7 @@ bool SimplePID::update() {
 
     if (isFeedForwardActive)
         FFOut = setpointDerivative * gainFF;
-    Serial.printf("%.2f\t %.2f\t %.2f\t %.2f\n", *setpointTarget, setpointFiltered, setpointDerivative, *sensorOutput);
+    // Serial.printf("%.2f\t %.2f\t %.2f\t %.2f\n", *setpointTarget, setpointFiltered, setpointDerivative, *sensorOutput);
 
     float deltaTime = 1.0f / ctrl_freq_sampling; // Time step in seconds
 
@@ -87,7 +91,7 @@ bool SimplePID::update() {
 
 void SimplePID::setpointFiltering(float freq) {
 
-    float wn = (2.0f * PI * freq);
+    float wn = (2.0f * M_PI * freq);
     float dderiv = wn * wn * (*setpointTarget - setpointFilteredValues.back());
     setpointFiltstate1 += dderiv / ctrl_freq_sampling;
     setpointDerivative = setpointFiltstate1 - wn * 2 * setpointFiltXi * setpointFilteredValues.back();
@@ -108,7 +112,7 @@ void SimplePID::initSetPointFilter(float initialValue) {
     for (int i = 0; i < setpointDelaySamples + 1; ++i) {
         setpointFilteredValues.push_back(initialValue);
     }
-    setpointFiltstate1 = 2 * setpointFiltXi * 2 * PI * setpointFilterFreq * initialValue;
+    setpointFiltstate1 = 2 * setpointFiltXi * 2 * M_PI * setpointFilterFreq * initialValue;
 }
 
 void SimplePID::resetFeedbackController() {
@@ -164,7 +168,7 @@ void SimplePID::setManualOutput(float output) {
 
 void SimplePID::computeSetpointDelay(float systemDelay) {
     // systemDelay : (s) system pure delay
-    float setpointFilterDelay = 1 / (2 * PI * setpointFilterFreq); // Setpoint filter delay in seconds
+    float setpointFilterDelay = 1 / (2 * M_PI * setpointFilterFreq); // Setpoint filter delay in seconds
     float totalDelay =
         systemDelay -
         setpointFilterDelay; // Delay to apply to synchronise the setpoint with the stepoint derivative for the feedforward term

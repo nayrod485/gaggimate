@@ -53,16 +53,16 @@ void PressureController::filterSensor() {
 void PressureController::tare() { coffeeOutput = 0.0; }
 
 void PressureController::update() {
-    if (*_ValveStatus == 1 && old_ValveStatus == 0){
+    if (*_ValveStatus != old_ValveStatus){
         reset();
     }
-
     old_ValveStatus = *_ValveStatus;
-
     filterSetpoint();
     filterSensor();
     computePumpDutyCycle();
     virtualScale();
+
+
 }
 
 float PressureController::computeAdustedCoffeeFlowRate(float pressure = 0.0f){
@@ -195,10 +195,9 @@ void PressureController::computePumpDutyCycle() {
 
     alpha = _Co /Qa * (- _lambda * error  - K * sat_s  ) - iterm;
     *_ctrlOutput = constrain(alpha *100.0f,0.0f,100.0f);
-}
+    }
 
 void PressureController::reset() { 
-    Serial.println("RESET CTRL");
     this->R_estimator->reset();
     initSetpointFilter(_filteredPressureSensor);
     _errorInteg = 0.0f;

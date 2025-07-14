@@ -1,6 +1,10 @@
 #include "HydraulicParameterEstimator.h"
 #include <cmath>
-#include <Arduino.h>
+#ifdef ARDUINO
+  #include <Arduino.h>
+#else
+  #include <ArduinoStub.h>
+#endif
 
 HydraulicParameterEstimator::HydraulicParameterEstimator(float dt_)
     : dt(dt_), C_fixed(1e-6f), lambda(0.8f), K_est_init(1e-4f), counter(0)
