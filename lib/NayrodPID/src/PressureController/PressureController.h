@@ -6,6 +6,7 @@ static constexpr float M_PI = 3.14159265358979323846f;
 #endif
 
 #include "HydraulicParameterEstimator/HydraulicParameterEstimator.h"
+#include "FlowEstimator/FlowEstimator.h"
 #include "SimpleKalmanFilter/SimpleKalmanFilter.h"
 #include <algorithm>
 class PressureController {
@@ -27,7 +28,7 @@ class PressureController {
     void tare();
     void reset();
 
-    float getcoffeeOutputEstimate() { return coffeeOutput; };
+    float getcoffeeOutputEstimate() { return  coffeeOutput; };
     float getFilteredPressure() { return _filteredPressureSensor; };
     void setPumpFlowCoeff(float oneBarFlow, float nineBarFlow);
     void setPumpFlowPolyCoeffs(float a, float b, float c, float d);
@@ -63,7 +64,7 @@ class PressureController {
     float _pressureLimit = 0.0f;
 
     // === System parameters ===
-    const float _Co = 6.6e-7f;     // Compliance (m^3/bar)
+    const float _Co = 1.4e-6f;     // Compliance (m^3/bar)
     float _R = 1e7f;               // Gestimate of the average puck resitance at t=0
     const float _Pmax = 15.0f;     // Pression max (bar)
     const float _maxSpeedP = 9.0f; // bar/s
@@ -85,14 +86,19 @@ class PressureController {
     // === Flow estimation  ===
     float flowPerSecond = 0.0f;
     float pumpFlowRate = 0.0f;
+    float pumpVolume = 0.0f;
     float coffeeOutput = 0.0f;
     float retroCoffeeOutputPressureHistory = 0.0f;
     int estimationConvergenceCounter = false;
     float lastGoodEstimatedR = 0.0f;
     float puckResistance = 1e-8f; // Estimation of puck conductance
+    float timer = 0.0f;
+  
+    float boilerToPuckVolume = 0.0f;
 
     SimpleKalmanFilter *pressureKF;
     HydraulicParameterEstimator *R_estimator;
+    FlowEstimator *Qout_estimator;
 };
 
 #endif // PRESSURE_CONTROLLER_H

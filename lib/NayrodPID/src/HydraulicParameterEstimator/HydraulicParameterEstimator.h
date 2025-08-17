@@ -13,7 +13,8 @@ class HydraulicParameterEstimator {
     void reset();
     bool hasConverged();
     float getResistance() { return K_est; };
-    float getCovariance() { return P_cov[1][1]; };
+    float getCovariance() { return (sqrtf(P_cov[1][1]) / fabs(K_est));};
+    float getPressureDerivative(){return dPdt_filtered;};
 
     float C_fixed;
     float K_est_init;
@@ -28,8 +29,8 @@ class HydraulicParameterEstimator {
     // === Etat & hyperparamètres EKF ===
     float X_state[2] = {0.0f, 0.0f}; // [P, k]
     float P_cov[2][2] = {0};
-    float Qk[2][2] = { // Model noise [Qin,Wk]
-        {0.0, 0.0f},
+    float Qk[2][2] = { // Model noise [Qin,Wk] (sigmaQ/C)^2*dt & sigma^2*dt
+        {0.0f, 0.0f},
         {0.0f, 1e-18f}};
     float meas_noise_var = 1e-4f; // Bruit mesure P
     float lambda = 0.8f;          // Forget factor
