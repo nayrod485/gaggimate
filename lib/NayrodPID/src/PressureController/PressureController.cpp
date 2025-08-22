@@ -47,9 +47,20 @@ void PressureController::setupSetpointFilter(float freq, float damping) {
     _filtxi = damping;
 }
 
-void PressureController::filterSensor() { _filteredPressureSensor = this->pressureKF->updateEstimate(*_rawPressure); }
+void PressureController::filterSensor() { 
+    float newFiltered = this->pressureKF->updateEstimate(*_rawPressure);
+    float alpha = 0.5f/(0.5f +_dt); 
+    _dFilteredPressure = alpha * _dFilteredPressure 
+                    + (1.0f - alpha) * ((newFiltered - _lastFilteredPressure) / _dt);
+    _lastFilteredPressure = newFiltered;
+    _filteredPressureSensor = newFiltered;
+}
 
-void PressureController::tare() { coffeeOutput = 0.0; }
+void PressureController::tare() { 
+    coffeeOutput = 0.0; 
+    coffeeBadVolume = 0.0f;
+    pumpVolume = 0.0f;
+}
 
 void PressureController::update(ControlMode mode) {
     if (*_ValveStatus != old_ValveStatus) {
@@ -121,51 +132,32 @@ void PressureController::setPumpFlowPolyCoeffs(float a, float b, float c, float 
 }
 
 void PressureController::virtualScale() {
-    // Estimate pump output flow
-    pumpFlowRate = pumpFlowModel(*_ctrlOutput);
+    // Estimate puck input flow
+    if(pumpVolume < deadVolume ){  // Proportionnaly increase flow rate at the beginning  
+        float flow = pumpFlowModel(*_ctrlOutput)*1e6f;
+        pumpFlowInstant += flow *_dt;
+        pumpFlowRate = pumpFlowInstant * flow /8.0f;     
+    }else{
+        // pumpFlowRate = pumpFlowModel(*_ctrlOutput)*1e6f;
+        float alpha = 0.3/(0.3+_dt);
+        pumpFlowRate = pumpFlowModel(*_ctrlOutput)*1e6f *alpha + pumpFlowRate * (1-alpha);
+    }
     pumpVolume += pumpFlowRate *_dt;
-    // if(pumpVolume> boilerToPuckVolume){
-    //     // Update puck resistance estimation:
-    //     bool isPpressurized = this->R_estimator->update(pumpFlowRate, _filteredPressureSensor);
-    //     float temp_resist = R_estimator->getResistance();
-    //     if (temp_resist != 0.0f)
-    //         puckResistance = temp_resist;
-    //     // Trigger for the estimation flow output
-    //     if (R_estimator->hasConverged()) {
-    //         estimationConvergenceCounter += 1;
-    //     }
-    //     // Flow estimation :
-    //     if (isPpressurized && estimationConvergenceCounter > 1.0f/_dt  ) {
-    //         if (retroCoffeeOutputPressureHistory != 0) {
-    //             // Some coffee might have dripped before flow estimation occured, we need to account for that for the predictive scale
-    //             coffeeOutput +=computeAdustedCoffeeFlowRate(retroCoffeeOutputPressureHistory) * _dt ;
-    //             retroCoffeeOutputPressureHistory = 0.0f;
-    //         }
-    //         flowPerSecond = computeAdustedCoffeeFlowRate();
-    //         coffeeOutput +=flowPerSecond * _dt;
-    //         ESP_LOGI("","ESTIME");
-    //     } else if (*_rawPressureSetpoint != 0 ) { // Shot just started (no pressure yet, no R converge but setpoint not 0)
-    //         retroCoffeeOutputPressureHistory += _filteredPressureSensor;
-    //     } else if (estimationConvergenceCounter > 0) { // We're in a low pressure profil phase but we know R ->we can compute flow rate
-    //         flowPerSecond = computeAdustedCoffeeFlowRate();
-    //     } else {
-    //         flowPerSecond = 0.0f;
-    //     }
-    // }else{
-    //     this->R_estimator->reset();
-    // }
-
-    // Estimation through FlowEstimator 
-    if( pumpVolume*1e6f> boilerToPuckVolume ){
-        Qout_estimator->update(pumpFlowRate*1e6, _filteredPressureSensor);
-        flowPerSecond = Qout_estimator->getFlowMlPerSec();
-        timer += _dt;
-        if(timer>1.5)
-            coffeeOutput += flowPerSecond * _dt;
-        float convergence = sqrtf(Qout_estimator->getFlowVariance())/fmax(flowPerSecond,1e-6f);
-        ESP_LOGI("","%d\t%f\t%f\t%f\t%f\t%.2e", millis(), pumpFlowRate*1e6f, pumpVolume*1e6, flowPerSecond, coffeeOutput, convergence);
-    }   
+    
+    // Update puck resistance estimation:
+    float badFlow = 0.0f;
+    bool isPpressurized = this->R_estimator->update(pumpFlowRate, _filteredPressureSensor);
+    flowPerSecond = R_estimator->getQout();
+    if (flowPerSecond > 0.0f) {
+        badFlow = pumpFlowRate - R_estimator->getCeff()*_dFilteredPressure;
+        coffeeBadVolume += badFlow * _dt;
+        if (coffeeBadVolume > 15.0f){
+            coffeeOutput += flowPerSecond * _dt;  
+        }
+    }
+    // ESP_LOGI("","%.2e\t%.2e\t%.2e\t%.2e\t%.2e\t%.2e\t%.2e",badFlow, coffeeBadVolume, R_estimator->getPressure(),_filteredPressureSensor,R_estimator->getResistance(),R_estimator->getQout(),R_estimator->getCovarianceK());
 }
+
 
 float PressureController::getPumpDutyCycleForPressure() {
 
@@ -204,8 +196,7 @@ float PressureController::getPumpDutyCycleForPressure() {
     // Switching surface
     _epsilon = 0.15f * _r;
     deadband = 0.1f * _r;
-    // Try out pump control without error
-    // float s = _lambda * error + error_dot * 0.1f;
+    
     float s = _lambda * error;
     float sat_s = 0.0f;
     if (error > 0) {
@@ -241,6 +232,7 @@ void PressureController::reset() {
     _errorInteg = 0.0f;
     retroCoffeeOutputPressureHistory = 0;
     estimationConvergenceCounter = 0;
-    pumpVolume = 0.0f;
     timer = 0.0f;
+    pumpFlowInstant = 0.0f;
+    ESP_LOGI("","RESET");
 }

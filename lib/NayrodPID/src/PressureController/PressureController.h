@@ -28,15 +28,17 @@ class PressureController {
     void tare();
     void reset();
 
-    float getcoffeeOutputEstimate() { return  coffeeOutput; };
+    float getcoffeeOutputEstimate() { return  std::fmax(0.0f, coffeeOutput -0.0f); };
     float getFilteredPressure() { return _filteredPressureSensor; };
     void setPumpFlowCoeff(float oneBarFlow, float nineBarFlow);
     void setPumpFlowPolyCoeffs(float a, float b, float c, float d);
-    float getPumFlowRate() { return pumpFlowModel(*_ctrlOutput); };
+    float getPumFlowRate() { return pumpFlowRate; };
     float getCoffeeFlowRate() { return *_ValveStatus == 1 ? flowPerSecond : 0.0f; };
     float getPuckResistance() { return R_estimator->getResistance(); }
-    float getEstimatorCovariance() { return R_estimator->getCovariance(); };
+    float getEstimatorCovariance() { return R_estimator->getCovarianceQout(); };
     float getPumpDutyCycleForFlowRate() const;
+    float getFilteredPressureDerivative() const { return _dFilteredPressure; };
+
 
   private:
     float getPumpDutyCycleForPressure();
@@ -87,14 +89,19 @@ class PressureController {
     float flowPerSecond = 0.0f;
     float pumpFlowRate = 0.0f;
     float pumpVolume = 0.0f;
+    float coffeeBadVolume = 0.0f;
     float coffeeOutput = 0.0f;
     float retroCoffeeOutputPressureHistory = 0.0f;
     int estimationConvergenceCounter = false;
     float lastGoodEstimatedR = 0.0f;
     float puckResistance = 1e-8f; // Estimation of puck conductance
     float timer = 0.0f;
-  
-    float boilerToPuckVolume = 0.0f;
+    float _dFilteredPressure = 0.0f; // dérivée de la pression filtrée
+    float _lastFilteredPressure = 0.0f; // mémorise la valeur précédente
+    
+    float deadVolume = 8.0f;
+    float pumpFlowInstant = 0.0f;
+    float pressureDerivative = 0.0f;
 
     SimpleKalmanFilter *pressureKF;
     HydraulicParameterEstimator *R_estimator;
