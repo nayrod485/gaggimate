@@ -27,7 +27,7 @@ class PressureController {
     void tare();
     void reset();
 
-    float getcoffeeOutputEstimate() { return  std::fmax(0.0f, coffeeOutput -0.0f); };
+    float getcoffeeOutputEstimate() { return  coffeeOutput; };
     float getFilteredPressure() { return _filteredPressureSensor; };
     void setPumpFlowCoeff(float oneBarFlow, float nineBarFlow);
     void setPumpFlowPolyCoeffs(float a, float b, float c, float d);
@@ -43,7 +43,6 @@ class PressureController {
     float getPumpDutyCycleForPressure();
     void virtualScale();
     void filterSensor();
-    float computeAdustedCoffeeFlowRate(float pressure = 0.0f) const;
     float pumpFlowModel(float alpha = 100.0f) const;
     float getAvailableFlow() const;
 
@@ -54,7 +53,7 @@ class PressureController {
     float *_rawPressure = nullptr;         // pointer to the pressure measurement ,raw output from sensor
     float *_ctrlOutput = nullptr;          // pointer to controller output value of power ratio 0-100%
     int *_ValveStatus = nullptr;           // pointer to 3WV status regarding group head canal open/closed
-    int old_ValveStatus = 0;
+    
     float _filteredPressureSensor = 0.0f;
     float _filtfreqHz = 1.0f; // Setpoint filter cuttoff frequency
     float _filtxi = 1.2f;     // Setpoint filter damping ratio
@@ -65,8 +64,7 @@ class PressureController {
     float _pressureLimit = 0.0f;
 
     // === System parameters ===
-    const float _Co = 1.4e-6f;     // Compliance (m^3/bar)
-    float _R = 1e7f;               // Gestimate of the average puck resitance at t=0
+    const float _Co = 0.8f;     // Compliance (m^3/bar)
     const float _Pmax = 15.0f;     // Pression max (bar)
     const float _maxSpeedP = 9.0f; // bar/s
     float PUMP_FLOW_POLY[4] = {0.0f, 0.0f, -0.5854f, 10.79f};
@@ -78,6 +76,7 @@ class PressureController {
     float deadband = 0.3f; // Dead band
     float _Ki = 0.05f;     // dt/tau
     float _integLimit = 0.8f;
+
     // === Controller states ===
     float _P_previous = 0.0f;
     float _dP_previous = 0.0f;
@@ -90,11 +89,6 @@ class PressureController {
     float pumpVolume = 0.0f;
     float coffeeBadVolume = 0.0f;
     float coffeeOutput = 0.0f;
-    float retroCoffeeOutputPressureHistory = 0.0f;
-    int estimationConvergenceCounter = false;
-    float lastGoodEstimatedR = 0.0f;
-    float puckResistance = 1e-8f; // Estimation of puck conductance
-    float timer = 0.0f;
     float _dFilteredPressure = 0.0f; // dérivée de la pression filtrée
     float _lastFilteredPressure = 0.0f; // mémorise la valeur précédente
     

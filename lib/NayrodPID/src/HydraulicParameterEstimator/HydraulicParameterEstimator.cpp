@@ -7,7 +7,7 @@
 #endif
 
 HydraulicParameterEstimator::HydraulicParameterEstimator(float dt_)
-    : dt(dt_), C_fixed(0.9f), lambda(0.8f), K_est_init(0.0f), counter(0) {
+    : dt(dt_), C_fixed(0.5f), K_est_init(0.0f) {
 
     X_state[0] = 0.0f;       // P
     X_state[1] = K_est_init; // k
@@ -41,7 +41,6 @@ void HydraulicParameterEstimator::setPhysicalNoises(float sigmaQin, float kDrift
 }
 
 void HydraulicParameterEstimator::reset() {
-    counter = 0;
     X_state[0] = 1e-4f;     // P
     X_state[1] = K_est_init;// k
     X_state[2] = 0.0f;      // Qout
@@ -57,7 +56,7 @@ bool HydraulicParameterEstimator::hasConverged() {
     return P_cov[1][1] < 1e-16f;
 }
 float HydraulicParameterEstimator:: getEffectiveCompliance(float Vin) {
-    // Paramètres à tuner
+    //
     const float Vfill = 3.5f;      // mL volume variation C
     const float Vmin = 8.0f;       // mL volume remplissage
     const float C_init = 8.0f;     // ml/bar, moins extrême
@@ -72,11 +71,7 @@ float HydraulicParameterEstimator:: getEffectiveCompliance(float Vin) {
 }
 
 bool HydraulicParameterEstimator::update(float Q_in, float P_meas) {
-    counter++;
-    
     Vin_cum += Q_in * dt;
-    // if(P_meas<0.8)
-    //     return false;
     C_eff = getEffectiveCompliance(Vin_cum);
     float Pk = X_state[0];
     float kk = X_state[1];
