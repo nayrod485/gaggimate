@@ -12,7 +12,7 @@
 class Controller;
 
 constexpr int RERENDER_INTERVAL_IDLE = 2500;
-constexpr int RERENDER_INTERVAL_ACTIVE = 250;
+constexpr int RERENDER_INTERVAL_ACTIVE = 100;
 
 constexpr int TEMP_HISTORY_INTERVAL = 250;
 constexpr int TEMP_HISTORY_LENGTH = 20 * 1000 / TEMP_HISTORY_INTERVAL;

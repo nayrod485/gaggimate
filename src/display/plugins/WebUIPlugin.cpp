@@ -8,6 +8,7 @@
 
 #include "BLEScalePlugin.h"
 #include "ShotHistoryPlugin.h"
+#include <algorithm>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -87,15 +88,14 @@ void WebUIPlugin::loop() {
             pObj["a"] = controller->isActive() ? 1 : 0;
             if (process->getType() == MODE_BREW) {
                 auto *brew = static_cast<BrewProcess *>(process);
-                unsigned long ts = millis();
-                if (!brew->isActive()) {
-                    ts = brew->finished;
-                }
+                unsigned long ts = brew->isActive() && controller->isActive() ? millis() : brew->finished;
                 pObj["s"] = brew->currentPhase.phase == PhaseType::PHASE_TYPE_BREW ? "brew" : "infusion";
                 pObj["l"] = brew->isActive() ? brew->currentPhase.name.c_str() : "Finished";
                 pObj["e"] = ts - brew->processStarted;
-                pObj["tt"] = brew->target == ProcessTarget::TIME ? "time" : "volumetric";
-                if (brew->target == ProcessTarget::VOLUMETRIC && brew->currentPhase.hasVolumetricTarget()) {
+                const bool isVolumetric = brew->target == ProcessTarget::VOLUMETRIC && brew->currentPhase.hasVolumetricTarget() &&
+                                          controller->isVolumetricAvailable();
+                pObj["tt"] = isVolumetric ? "volumetric" : "time";
+                if (isVolumetric) {
                     Target t = brew->currentPhase.getVolumetricTarget();
                     pObj["pt"] = t.value;
                     pObj["pp"] = brew->currentVolume;
@@ -230,6 +230,7 @@ void WebUIPlugin::handleWebSocketData(AsyncWebSocket *server, AsyncWebSocketClie
                     controller->activate();
                 } else if (msgType == "req:process:deactivate") {
                     controller->deactivate();
+                    controller->clear();
                 } else if (msgType == "req:process:clear") {
                     controller->clear();
                 } else if (msgType == "req:change-mode") {
@@ -333,6 +334,20 @@ void WebUIPlugin::handleProfileRequest(uint32_t clientId, JsonDocument &request)
     } else if (type == "req:profiles:unfavorite") {
         auto id = request["id"].as<String>();
         controller->getSettings().removeFavoritedProfile(id);
+    } else if (type == "req:profiles:reorder") {
+        // Expect an array of profile IDs in desired order
+        if (request["order"].is<JsonArray>()) {
+            std::vector<String> order;
+            for (JsonVariant v : request["order"].as<JsonArray>()) {
+                if (v.is<String>()) {
+                    String id = v.as<String>();
+                    if (!id.isEmpty() && std::find(order.begin(), order.end(), id) == order.end()) {
+                        order.emplace_back(std::move(id));
+                    }
+                }
+            }
+            controller->getSettings().setProfileOrder(order);
+        }
     }
 
     String msg;
@@ -383,6 +398,8 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
                 settings->setHomeAssistantIP(request->arg("haIP"));
             if (request->hasArg("haPort"))
                 settings->setHomeAssistantPort(request->arg("haPort").toInt());
+            if (request->hasArg("haTopic"))
+                settings->setHomeAssistantTopic(request->arg("haTopic"));
             settings->setMomentaryButtons(request->hasArg("momentaryButtons"));
             settings->setDelayAdjust(request->hasArg("delayAdjust"));
             if (request->hasArg("brewDelay"))
@@ -402,6 +419,8 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
                 settings->setStandbyBrightnessTimeout(request->arg("standbyBrightnessTimeout").toInt() * 1000);
             if (request->hasArg("steamPumpPercentage"))
                 settings->setSteamPumpPercentage(request->arg("steamPumpPercentage").toFloat());
+            if (request->hasArg("steamPumpCutoff"))
+                settings->setSteamPumpCutoff(request->arg("steamPumpCutoff").toFloat());
             if (request->hasArg("themeMode"))
                 settings->setThemeMode(request->arg("themeMode").toInt());
             if (request->hasArg("sunriseR"))
@@ -436,6 +455,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
     doc["haPassword"] = settings.getHomeAssistantPassword();
     doc["haIP"] = settings.getHomeAssistantIP();
     doc["haPort"] = settings.getHomeAssistantPort();
+    doc["haTopic"] = settings.getHomeAssistantTopic();
     doc["pid"] = settings.getPid();
     doc["pumpModelCoeffs"] = settings.getPumpModelCoeffs();
     doc["wifiSsid"] = settings.getWifiSsid();
@@ -460,6 +480,7 @@ void WebUIPlugin::handleSettings(AsyncWebServerRequest *request) const {
     doc["standbyBrightness"] = settings.getStandbyBrightness();
     doc["standbyBrightnessTimeout"] = settings.getStandbyBrightnessTimeout() / 1000;
     doc["steamPumpPercentage"] = settings.getSteamPumpPercentage();
+    doc["steamPumpCutoff"] = settings.getSteamPumpCutoff();
     doc["themeMode"] = settings.getThemeMode();
     doc["sunriseR"] = settings.getSunriseR();
     doc["sunriseG"] = settings.getSunriseG();

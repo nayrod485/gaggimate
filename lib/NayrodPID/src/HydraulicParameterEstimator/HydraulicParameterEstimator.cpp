@@ -7,7 +7,11 @@
 #endif
 
 HydraulicParameterEstimator::HydraulicParameterEstimator(float dt_)
+<<<<<<< HEAD
     : dt(dt_), C_fixed(0.5f), K_est_init(0.0f) {
+=======
+    : dt(dt_), C_fixed(0.9f), lambda(0.8f), K_est_init(0.0f), counter(0) {
+>>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
 
     X_state[0] = 0.0f;       // P
     X_state[1] = K_est_init; // k
@@ -41,6 +45,10 @@ void HydraulicParameterEstimator::setPhysicalNoises(float sigmaQin, float kDrift
 }
 
 void HydraulicParameterEstimator::reset() {
+<<<<<<< HEAD
+=======
+    counter = 0;
+>>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     X_state[0] = 1e-4f;     // P
     X_state[1] = K_est_init;// k
     X_state[2] = 0.0f;      // Qout
@@ -56,7 +64,11 @@ bool HydraulicParameterEstimator::hasConverged() {
     return P_cov[1][1] < 1e-16f;
 }
 float HydraulicParameterEstimator:: getEffectiveCompliance(float Vin) {
+<<<<<<< HEAD
     //
+=======
+    // Paramètres à tuner
+>>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     const float Vfill = 3.5f;      // mL volume variation C
     const float Vmin = 8.0f;       // mL volume remplissage
     const float C_init = 8.0f;     // ml/bar, moins extrême
@@ -71,10 +83,18 @@ float HydraulicParameterEstimator:: getEffectiveCompliance(float Vin) {
 }
 
 bool HydraulicParameterEstimator::update(float Q_in, float P_meas) {
+<<<<<<< HEAD
   if(P_meas <minPressureStart){
     return false;
   }
     Vin_cum += Q_in * dt;
+=======
+    counter++;
+    
+    Vin_cum += Q_in * dt;
+    // if(P_meas<0.8)
+    //     return false;
+>>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     C_eff = getEffectiveCompliance(Vin_cum);
     float Pk = X_state[0];
     float kk = X_state[1];

@@ -36,6 +36,7 @@ export function ProfileEdit() {
                 duration: 0,
                 adaptive: true,
               },
+              targets: [],
             },
             {
               name: 'Bloom',
@@ -48,6 +49,7 @@ export function ProfileEdit() {
                 duration: 0,
                 adaptive: true,
               },
+              targets: [],
             },
             {
               name: 'Pump',

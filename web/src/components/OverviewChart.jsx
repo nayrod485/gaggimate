@@ -133,6 +133,10 @@ export function OverviewChart() {
   const chartData = getChartData(machine.value.history);
 
   return (
-    <ChartComponent className='h-full min-h-[200px] w-full flex-1 lg:min-h-[350px]' chartClassName='h-full w-full' data={chartData} />
+    <ChartComponent
+      className='h-full min-h-[200px] w-full flex-1 lg:min-h-[350px]'
+      chartClassName='h-full w-full'
+      data={chartData}
+    />
   );
 }

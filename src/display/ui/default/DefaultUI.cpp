@@ -251,8 +251,8 @@ void DefaultUI::onProfileSwitch() {
     favoritedProfiles = profileManager->getFavoritedProfiles();
     currentProfileIdx = 0;
     currentProfileId = favoritedProfiles[currentProfileIdx];
-    currentProfileChoice = Profile{};
     profileLoaded = 0;
+    currentProfileChoice = Profile{};
     changeScreen(&ui_ProfileScreen, ui_ProfileScreen_screen_init);
 }
 
@@ -260,8 +260,8 @@ void DefaultUI::onNextProfile() {
     if (currentProfileIdx < favoritedProfiles.size() - 1) {
         currentProfileIdx++;
         currentProfileId = favoritedProfiles.at(currentProfileIdx);
-        currentProfileChoice = Profile{};
         profileLoaded = 0;
+        currentProfileChoice = Profile{};
     }
 }
 
@@ -269,8 +269,8 @@ void DefaultUI::onPreviousProfile() {
     if (currentProfileIdx > 0) {
         currentProfileIdx--;
         currentProfileId = favoritedProfiles.at(currentProfileIdx);
+        profileLoaded = 0;
         currentProfileChoice = Profile{};
-        profileLoaded = false;
     }
 }
 

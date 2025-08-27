@@ -53,12 +53,26 @@ export function ChartComponent({ data, className, chartClassName }) {
       // Update maxTicksLimit for x-axis
       chart.options.scales.x.ticks.maxTicksLimit = isSmallScreen ? 5 : 10;
 
+      // Force chart to resize and recalculate dimensions
+      chart.resize();
+
       // Update the chart to apply changes
       chart.update('none'); // Use 'none' mode for better performance
     };
 
-    // Add event listener
+    // Add event listeners for different orientation change scenarios
     window.addEventListener('resize', handleResize);
+
+    // iOS PWA specific: orientationchange event
+    window.addEventListener('orientationchange', () => {
+      // Use a small delay to ensure the orientation change is complete
+      setTimeout(handleResize, 100);
+    });
+
+    // iOS PWA specific: visualViewport change (for newer iOS versions)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
 
     // Initial call to ensure correct sizing
     handleResize();
@@ -66,6 +80,10 @@ export function ChartComponent({ data, className, chartClassName }) {
     // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
     };
   }, [chart]);
 
