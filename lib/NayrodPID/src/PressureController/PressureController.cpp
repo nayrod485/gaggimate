@@ -120,29 +120,34 @@ void PressureController::setPumpFlowPolyCoeffs(float a, float b, float c, float 
 
 void PressureController::virtualScale() {
     if (*_ValveStatus == 1 ){
-        // Estimate puck input flow
-        if(pumpVolume < deadVolume ){  // Proportionnaly increase flow rate at the beginning  
-            float flow = pumpFlowModel(*_ctrlOutput);
-            pumpFlowInstant += flow *_dt;
-            pumpFlowRate = pumpFlowInstant * flow /8.0f;     
-        }else{
-            float alpha = 0.3/(0.3+_dt);
-            pumpFlowRate = pumpFlowModel(*_ctrlOutput) *alpha + pumpFlowRate * (1-alpha);
-        }
-        pumpVolume += pumpFlowRate *_dt;
-        
-        // Update puck resistance estimation:
-        float badFlow = 0.0f;
-        this->R_estimator->update(pumpFlowRate, _filteredPressureSensor);
-        flowPerSecond = R_estimator->getQout();
-        if (flowPerSecond > 0.0f) {
-            badFlow = pumpFlowRate - R_estimator->getCeff()*_dFilteredPressure;
-            coffeeBadVolume += fmax(0.0f, badFlow) * _dt;
-            if (coffeeBadVolume > 15.0f){
-                coffeeOutput += flowPerSecond * _dt;  
+        bool ispressurized = this->R_estimator->update(pumpFlowRate, _filteredPressureSensor);
+        if(ispressurized){
+            // Estimate puck input flow
+            if(pumpVolume < deadVolume ){  // Proportionnaly increase flow rate at the beginning  
+                float flow = pumpFlowModel(*_ctrlOutput);
+                pumpFlowInstant += flow *_dt;
+                pumpFlowRate = pumpFlowInstant * flow /8.0f;     
+            }else{
+                float alpha = 0.3/(0.3+_dt);
+                pumpFlowRate = pumpFlowModel(*_ctrlOutput) *alpha + pumpFlowRate * (1-alpha);
             }
+            pumpVolume += pumpFlowRate *_dt;
+            // Update puck resistance estimation:
+            float badFlow = 0.0f;
+            flowPerSecond = R_estimator->getQout();
+            if (flowPerSecond > 0.0f) {
+                badFlow = pumpFlowRate - R_estimator->getCeff()*_dFilteredPressure;
+                coffeeBadVolume += fmax(0.0f, badFlow) * _dt;
+                if (coffeeBadVolume > 15.0f){
+                    coffeeOutput += flowPerSecond * _dt;  
+                }
+            }
+        }else{// Not enough pressure, water hasn't reached the puck then don't consider flows yet
+            pumpFlowRate = 0.0f;
+            flowPerSecond = 0.0f;
         }
     }
+
     // ESP_LOGI("","%.2e\t%.2e\t%.2e\t%.2e\t%.2e\t%.2e\t%.2e",badFlow, coffeeBadVolume, R_estimator->getPressure(),_filteredPressureSensor,R_estimator->getResistance(),R_estimator->getQout(),R_estimator->getCovarianceK());
 }
 

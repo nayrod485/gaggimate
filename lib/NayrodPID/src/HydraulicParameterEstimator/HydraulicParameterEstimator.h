@@ -19,6 +19,7 @@ class HydraulicParameterEstimator {
     float getCovarianceK() { return P_cov[1][1]; };
     float getCovarianceQout() { return P_cov[2][2]; };
     float getCeff() {return C_eff;};
+    float setMinPressureStart(float press){minPressureStart = press;};
     
   private:
     float getEffectiveCompliance(float Vin);
@@ -34,6 +35,7 @@ class HydraulicParameterEstimator {
     float dt;
     float epsilon = 1e-6f;
     float Vin_cum = 0.0f; 
+    float minPressureStart = 1.0f; // Minimal pressure to start estimator (ie: boiler filled, pressure start to build up)
 };
 
 #endif

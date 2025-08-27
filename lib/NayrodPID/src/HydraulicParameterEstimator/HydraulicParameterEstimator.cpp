@@ -71,6 +71,9 @@ float HydraulicParameterEstimator:: getEffectiveCompliance(float Vin) {
 }
 
 bool HydraulicParameterEstimator::update(float Q_in, float P_meas) {
+  if(P_meas <minPressureStart){
+    return false;
+  }
     Vin_cum += Q_in * dt;
     C_eff = getEffectiveCompliance(Vin_cum);
     float Pk = X_state[0];
