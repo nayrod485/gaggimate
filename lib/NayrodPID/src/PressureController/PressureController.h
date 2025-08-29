@@ -27,11 +27,7 @@ class PressureController {
     void tare();
     void reset();
 
-<<<<<<< HEAD
     float getcoffeeOutputEstimate() { return  coffeeOutput; };
-=======
-    float getcoffeeOutputEstimate() { return  std::fmax(0.0f, coffeeOutput -0.0f); };
->>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     float getFilteredPressure() { return _filteredPressureSensor; };
     void setPumpFlowCoeff(float oneBarFlow, float nineBarFlow);
     void setPumpFlowPolyCoeffs(float a, float b, float c, float d);
@@ -68,12 +64,7 @@ class PressureController {
     float _pressureLimit = 0.0f;
 
     // === System parameters ===
-<<<<<<< HEAD
     const float _Co = 0.8f;     // Compliance (m^3/bar)
-=======
-    const float _Co = 1.4e-6f;     // Compliance (m^3/bar)
-    float _R = 1e7f;               // Gestimate of the average puck resitance at t=0
->>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     const float _Pmax = 15.0f;     // Pression max (bar)
     const float _maxSpeedP = 9.0f; // bar/s
     float PUMP_FLOW_POLY[4] = {0.0f, 0.0f, -0.5854f, 10.79f};
@@ -98,14 +89,6 @@ class PressureController {
     float pumpVolume = 0.0f;
     float coffeeBadVolume = 0.0f;
     float coffeeOutput = 0.0f;
-<<<<<<< HEAD
-=======
-    float retroCoffeeOutputPressureHistory = 0.0f;
-    int estimationConvergenceCounter = false;
-    float lastGoodEstimatedR = 0.0f;
-    float puckResistance = 1e-8f; // Estimation of puck conductance
-    float timer = 0.0f;
->>>>>>> 0ef912e1aa9d4336fec9477805dd266698c240ac
     float _dFilteredPressure = 0.0f; // dérivée de la pression filtrée
     float _lastFilteredPressure = 0.0f; // mémorise la valeur précédente
     
