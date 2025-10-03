@@ -9,9 +9,10 @@
 inline float sign(float x) { return (x > 0.0f) - (x < 0.0f); }
 
 // Static utility function for first-order low-pass filtering
-void PressureController::applyLowPassFilter(float* filteredValue, float rawValue, float cutoffFreq, float dt) {
-    if (filteredValue == nullptr) return;
-    
+void PressureController::applyLowPassFilter(float *filteredValue, float rawValue, float cutoffFreq, float dt) {
+    if (filteredValue == nullptr)
+        return;
+
     float alpha = dt / (1.0f / (2.0f * M_PI * cutoffFreq) + dt);
     *filteredValue = alpha * rawValue + (1.0f - alpha) * (*filteredValue);
 }
@@ -71,7 +72,6 @@ void PressureController::initSetpointFilter(float val) {
     _filteredSetpointDerivative = 0.0f;
     _setpointFilterInitialized = true;
 }
-
 
 void PressureController::filterSensor() {
     if (!_pressureKalmanFilter || !_pressureDerivativeFilter) {
@@ -139,7 +139,6 @@ void PressureController::update(ControlMode mode) {
         *_valveStatus
     );
 }
-
 
 float PressureController::pumpFlowModel(float alpha) const {
     const float availableFlow = getAvailableFlow();
