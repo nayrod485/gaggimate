@@ -7,15 +7,15 @@
 #include <cfloat>
 #include <esp_log.h>
 
-CoffeeEstimator::CoffeeEstimator(float dt, const FilterConfig& config) 
+CoffeeEstimator::CoffeeEstimator(float dt, const CoffeeFilterConfig& config) 
     : _dt(dt), _filterConfig(config), _coffeeOutput(0.0f), _coffeeFlowRate(0.0f), _waterThroughPuckFlowRate(0.0f),
       _tempFlow(0.0f), _filteredPressureSensor(0.0f), _puckSaturationVolume(0.0f), 
       _puckSaturatedVolume(35.0f), _puckConductance(0.0f), _puckConductanceDerivative(0.0f), 
       _puckResistance(1e7f), _puckCounter(0), _inPuckVol(0.0f), _settledInitialized(false) {
     
     // Initialize filters with config-specified types
-    _conductanceFilter = FilterFactory::createFilter(_filterConfig.conductanceFilterType, _filterConfig.conductanceWindowSize, _filterConfig.conductancePolynomialOrder);
-    _puckInputFlowFilter = FilterFactory::createFilter(_filterConfig.puckInputFlowFilterType, _filterConfig.puckInputFlowWindowSize, _filterConfig.puckInputFlowPolynomialOrder);
+    _conductanceFilter = FilterFactory::createFilter(_filterConfig.conductanceFilter);
+    _puckInputFlowFilter = FilterFactory::createFilter(_filterConfig.puckInputFlowFilter);
     
     // Initialize puck state
     setPuckSoaking(false);

@@ -18,28 +18,28 @@ enum class PuckState : int {
  */
 class CoffeeEstimator {
 public:
-    // Filter configuration structure
-    struct FilterConfig {
-        FilterFactory::FilterType conductanceFilterType;
-        FilterFactory::FilterType puckInputFlowFilterType;
-        int conductanceWindowSize;
-        int conductancePolynomialOrder;
-        int puckInputFlowWindowSize;
-        int puckInputFlowPolynomialOrder;
+    // CoffeeEstimator-specific filter configuration
+    struct CoffeeFilterConfig {
+        ::FilterConfig conductanceFilter;  // For conductance smoothing and derivatives
+        ::FilterConfig puckInputFlowFilter; // For puck input flow smoothing
         
-        // Default constructor with sensible defaults
-        FilterConfig() : 
-            conductanceFilterType(FilterFactory::LINEAR_REGRESSION),
-            conductanceWindowSize(30),
-            conductancePolynomialOrder(2),
-
-            puckInputFlowFilterType(FilterFactory::LINEAR_REGRESSION),
-            puckInputFlowWindowSize(50),
-            puckInputFlowPolynomialOrder(2) {}
+        // Default constructor - uses Linear Regression (recommended)
+        CoffeeFilterConfig() :
+            conductanceFilter(::FilterConfig::LINEAR_REGRESSION, 30, 2),
+            puckInputFlowFilter(::FilterConfig::LINEAR_REGRESSION, 50, 2) {}
         
+        // Constructor to use same filter type for both
+        CoffeeFilterConfig(::FilterConfig::FilterType filterType) :
+            conductanceFilter(filterType),
+            puckInputFlowFilter(filterType) {}
+        
+        // Full constructor for custom configuration
+        CoffeeFilterConfig(const ::FilterConfig& condConfig, const ::FilterConfig& flowConfig) :
+            conductanceFilter(condConfig),
+            puckInputFlowFilter(flowConfig) {}
     };
     
-    CoffeeEstimator(float dt, const FilterConfig& config);
+    CoffeeEstimator(float dt, const CoffeeFilterConfig& config);
     
     // Main estimation update
     void update(float pumpFlowRate, float pressure, float pressureDerivative, int valveStatus);
@@ -50,7 +50,7 @@ public:
     void tare();
     
     // Filter configuration tuning (if needed)
-    void setConductanceFilterWindow(int windowSize) { const_cast<FilterConfig&>(_filterConfig).conductanceWindowSize = windowSize; }
+    void setConductanceFilterWindow(int windowSize) { const_cast<::FilterConfig&>(_filterConfig.conductanceFilter).windowSize = windowSize; }
     
     // Getters
     float getCoffeeOutput() const { return _coffeeOutput; }
@@ -85,7 +85,7 @@ private:
     void applyLowPassFilter(float* filteredValue, float rawValue, float cutoffFreq, float dt);
     
     const float _dt;
-    const FilterConfig _filterConfig;
+    const CoffeeFilterConfig _filterConfig;
     
     // Flow estimation
     float _waterThroughPuckFlowRate = 0.0f;

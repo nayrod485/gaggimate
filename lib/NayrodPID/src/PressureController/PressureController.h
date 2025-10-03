@@ -28,13 +28,15 @@ public:
     
     // Filter configuration structure
     struct FilterConfig {
-        int pressureWindowSize;
-        int pressurePolynomialOrder;
+        ::FilterConfig pressureDerivativeFilter;
         
-        // Default constructor with sensible defaults
+        // Default constructor with sensible defaults (uses Savitzky-Golay for pressure derivative)
         FilterConfig() : 
-            pressureWindowSize(30),
-            pressurePolynomialOrder(2) {}
+            pressureDerivativeFilter(::FilterConfig::SAVITZKY_GOLAY, 15, 2) {}
+        
+        // Constructor to specify filter type and parameters
+        FilterConfig(::FilterConfig::FilterType filterType, int windowSize, int polynomialOrder = 2) :
+            pressureDerivativeFilter(filterType, windowSize, polynomialOrder) {}
     };
     
     // Constructor with input validation
@@ -58,8 +60,8 @@ public:
     }
     
     // Filter configuration tuning (if needed)
-    void setPressureFilterWindow(int windowSize) { const_cast<FilterConfig&>(_filterConfig).pressureWindowSize = windowSize; }
-    void setPressureFilterOrder(int polynomialOrder) { const_cast<FilterConfig&>(_filterConfig).pressurePolynomialOrder = polynomialOrder; }
+    void setPressureFilterWindow(int windowSize) { const_cast<::FilterConfig&>(_filterConfig.pressureDerivativeFilter).windowSize = windowSize; }
+    void setPressureFilterOrder(int polynomialOrder) { const_cast<::FilterConfig&>(_filterConfig.pressureDerivativeFilter).polynomialOrder = polynomialOrder; }
     
     // Getters for system state
     float getCoffeeOutputEstimate() const { return _coffeeEstimator ? _coffeeEstimator->getCoffeeOutput() : 0.0f; }

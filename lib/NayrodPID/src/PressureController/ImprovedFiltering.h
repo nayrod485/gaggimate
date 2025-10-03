@@ -7,6 +7,42 @@
 #include <cmath>
 #include <memory>
 
+// Forward declaration for factory
+class FilterFactory;
+
+/**
+ * Generic filter configuration structure
+ * Can be used by any class that needs derivative filtering
+ */
+struct FilterConfig {
+    enum FilterType {
+        SAVITZKY_GOLAY,
+        LINEAR_REGRESSION
+    };
+    
+    FilterType type;
+    int windowSize;
+    int polynomialOrder;  // Only used for Savitzky-Golay
+    
+    // Default constructor
+    FilterConfig() : 
+        type(LINEAR_REGRESSION), 
+        windowSize(30), 
+        polynomialOrder(2) {}
+    
+    // Constructor with specific type (uses recommended window sizes)
+    FilterConfig(FilterType filterType) :
+        type(filterType),
+        windowSize(filterType == SAVITZKY_GOLAY ? 9 : 30),
+        polynomialOrder(2) {}
+    
+    // Full constructor
+    FilterConfig(FilterType filterType, int window, int polyOrder = 2) :
+        type(filterType),
+        windowSize(window),
+        polynomialOrder(polyOrder) {}
+};
+
 /**
  * Base class for derivative filters
  * Provides common interface for different filtering approaches
@@ -407,30 +443,22 @@ private:
  */
 class FilterFactory {
 public:
-    enum FilterType {
-        SAVITZKY_GOLAY,
-        LINEAR_REGRESSION
-    };
-    
-    // Generic factory method - caller chooses filter type
-    static std::unique_ptr<DerivativeFilter> createFilter(FilterType type, size_t window_size = 7, int polynomialOrder = 2) {
-        switch (type) {
-            case SAVITZKY_GOLAY:
-                return std::make_unique<SavitzkyGolayFilter>(window_size, polynomialOrder);
-            case LINEAR_REGRESSION:
-                return std::make_unique<LinearRegressionFilter>(window_size);
+    // Create filter from configuration
+    static std::unique_ptr<DerivativeFilter> createFilter(const FilterConfig& config) {
+        switch (config.type) {
+            case FilterConfig::SAVITZKY_GOLAY:
+                return std::make_unique<SavitzkyGolayFilter>(config.windowSize, config.polynomialOrder);
+            case FilterConfig::LINEAR_REGRESSION:
+                return std::make_unique<LinearRegressionFilter>(config.windowSize);
             default:
                 return nullptr;
         }
     }
     
-    // Convenience methods with specific filter types (for backward compatibility)
-    static std::unique_ptr<DerivativeFilter> createSavitzkyGolayFilter(int windowSize = 7, int polynomialOrder = 2) {
-        return std::make_unique<SavitzkyGolayFilter>(windowSize, polynomialOrder);
-    }
-    
-    static std::unique_ptr<DerivativeFilter> createLinearRegressionFilter(int windowSize = 12) {
-        return std::make_unique<LinearRegressionFilter>(windowSize);
+    // Convenience method with individual parameters (for backward compatibility)
+    static std::unique_ptr<DerivativeFilter> createFilter(FilterConfig::FilterType type, size_t window_size = 7, int polynomialOrder = 2) {
+        FilterConfig config(type, window_size, polynomialOrder);
+        return createFilter(config);
     }
 };
 

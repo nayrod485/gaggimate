@@ -32,13 +32,15 @@ PressureController::PressureController(float dt, float* rawPressureSetpoint, flo
     _pressureKalmanFilter = std::make_unique<SimpleKalmanFilter>(0.1f, 10.0f, powf(4 * _dt, 2));
     
     // Initialize derivative filters with internal configuration
-    _pressureDerivativeFilter = FilterFactory::createFilter(FilterFactory::SAVITZKY_GOLAY, _filterConfig.pressureWindowSize, _filterConfig.pressurePolynomialOrder);
+    _pressureDerivativeFilter = FilterFactory::createFilter(_filterConfig.pressureDerivativeFilter);
     
     // Initialize subsystems
     _pumpModel = std::make_unique<PumpModel>(_dt);
     
-    // Configure CoffeeEstimator with Savitzky-Golay filter
-    CoffeeEstimator::FilterConfig coffeeConfig(FilterFactory::SAVITZKY_GOLAY);
+    // Configure CoffeeEstimator filters
+    CoffeeEstimator::CoffeeFilterConfig coffeeConfig;
+    // CoffeeEstimator::CoffeeFilterConfig coffeeConfig(FilterConfig::SAVITZKY_GOLAY);
+    
     _coffeeEstimator = std::make_unique<CoffeeEstimator>(_dt, coffeeConfig);
     
     _previousPressure = *sensorOutput;
