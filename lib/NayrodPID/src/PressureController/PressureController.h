@@ -1,107 +1,139 @@
 // PressureController.h
 #ifndef PRESSURE_CONTROLLER_H
 #define PRESSURE_CONTROLLER_H
+
 #ifndef M_PI
 static constexpr float M_PI = 3.14159265358979323846f;
 #endif
 
 #include "SimpleKalmanFilter/SimpleKalmanFilter.h"
+#include "ImprovedFiltering.h"
+#include "PumpModel.h"
+#include "CoffeeEstimator.h"
 #include <algorithm>
+#include <memory>
 
+/**
+ * PressureController - Advanced pressure and flow control system for espresso machines
+ * 
+ * This controller manages pressure and flow control using a combination of:
+ * - Kalman filtering for sensor noise reduction
+ * - Advanced control algorithms for pressure regulation
+ * - Flow estimation and puck resistance calculation
+ * - Virtual scale functionality for coffee output measurement
+ */
 class PressureController {
-  private:
-    // Utility function for first-order low-pass filtering
-    static void applyLowPassFilter(float* filteredValue, float rawValue, float cutoffFreq, float dt);
-  public:
+public:
     enum class ControlMode { POWER, PRESSURE, FLOW };
-    PressureController(float dt, float *_rawPressureSetpoint, float *_rawFlowSetpoint, float *sensorOutput,
-                       float *controllerOutput, int *valveStatus);
-    void initSetpointFilter(float val = 0.0f);
-
-    void setFlowLimit(float lim) { /* Flow limit not currently implemented */ };
-    void setPressureLimit(float lim) { /* Pressure limit not currently implemented */ };
-
-
+    
+    // Filter configuration structure
+    struct FilterConfig {
+        int pressureWindowSize;
+        int pressurePolynomialOrder;
+        
+        // Default constructor with sensible defaults
+        FilterConfig() : 
+            pressureWindowSize(30),
+            pressurePolynomialOrder(2) {}
+    };
+    
+    // Constructor with input validation
+    PressureController(float dt, float* rawPressureSetpoint, float* rawFlowSetpoint, 
+                      float* sensorOutput, float* controllerOutput, int* valveStatus);
+    
+    // Destructor for proper cleanup
+    ~PressureController();
+    
+    // Control interface
     void update(ControlMode mode);
     void tare();
     void reset();
- 
-    float getCoffeeOutputEstimate() { return std::fmax(0.0f, _coffeeOutput); };
+    void initSetpointFilter(float val = 0.0f);
+    
+    // Configuration methods
     void setPumpFlowCoeff(float oneBarFlow, float nineBarFlow);
     void setPumpFlowPolyCoeffs(float a, float b, float c, float d);
-    float getPumpFlowRate() { return exportPumpFlowRate; };
-    float getCoffeeFlowRate() { return *_valveStatus == 1 ? _coffeeFlowRate : 0.0f; };
-    float getPuckResistance() { return _puckResistance; }
+    void setDeadVolume(float deadVol) { 
+        if (_coffeeEstimator) _coffeeEstimator->setDeadVolume(deadVol); 
+    }
+    
+    // Filter configuration tuning (if needed)
+    void setPressureFilterWindow(int windowSize) { const_cast<FilterConfig&>(_filterConfig).pressureWindowSize = windowSize; }
+    void setPressureFilterOrder(int polynomialOrder) { const_cast<FilterConfig&>(_filterConfig).pressurePolynomialOrder = polynomialOrder; }
+    
+    // Getters for system state
+    float getCoffeeOutputEstimate() const { return _coffeeEstimator ? _coffeeEstimator->getCoffeeOutput() : 0.0f; }
+    float getPumpFlowRate() const { return _pumpModel ? _pumpModel->getExportFlowRate() : 0.0f; }
+    float getCoffeeFlowRate() const { return *_valveStatus == 1 ? (_coffeeEstimator ? _coffeeEstimator->getCoffeeFlowRate() : 0.0f) : 0.0f; }
+    float getPuckResistance() const { return _coffeeEstimator ? _coffeeEstimator->getPuckResistance() : 1e7f; }
+    
+    // Legacy methods (currently not implemented)
+    void setFlowLimit(float lim) { /* Flow limit not currently implemented */ }
+    void setPressureLimit(float lim) { /* Pressure limit not currently implemented */ }
 
-    void setDeadVolume(float deadVol){_puckSaturatedVolume = deadVol;};
-
-  private:
+private:
+    // Utility functions
+    static void applyLowPassFilter(float* filteredValue, float rawValue, float cutoffFreq, float dt);
+    
+    // Control algorithms
     float getPumpDutyCycleForPressure();
-    void virtualScale();
+    float getPumpDutyCycleForFlowRate() const;
+    float getAvailableFlow() const;
+    
+    // Signal processing
     void filterSensor();
     void filterSetpoint(float rawSetpoint);
+    
+    // Flow modeling
     float pumpFlowModel(float alpha = 100.0f) const;
-    float getAvailableFlow() const;
-    float getPumpDutyCycleForFlowRate() const;
 
-    float _dt = 1.0f; // Controller sampling period (seconds)
-
-    // Input/output pointers
-    float* _rawPressureSetpoint = nullptr; // Pressure profile current setpoint/limit (bar)
-    float* _rawFlowSetpoint = nullptr;     // Flow profile current setpoint/limit (ml/s)
-    float* _rawPressure = nullptr;         // Raw pressure measurement from sensor (bar)
-    float* _ctrlOutput = nullptr;          // Controller output power ratio (0-100%)
-    int* _valveStatus = nullptr;           // 3-way valve status (group head open/closed)
-    
-    // Filtered values
-    float _filteredPressureSensor = 0.0f;  // Filtered pressure sensor reading (bar)
-    float _filteredSetpoint = 0.0f;        // Filtered pressure setpoint (bar)
-    float _filteredSetpointDerivative = 0.0f; // Derivative of filtered setpoint (bar/s)
-    float _filteredPressureDerivative = 0.0f;  // Derivative of filtered pressure (bar/s)
-    
-    // Setpoint filter parameters
-    float _setpointFilterFreq = 1.0f;      // Setpoint filter cutoff frequency (Hz)
-    float _setpointFilterDamping = 1.2f;   // Setpoint filter damping ratio
-    bool _setpointFilterInitialized = false;
-    
-
-    // === System parameters ===
+private:
+    // === Configuration Parameters ===
+    const float _dt;
+    const FilterConfig _filterConfig;                    // Controller sampling period (seconds)
     const float _systemCompliance = 1.4f;  // System compliance (ml/bar)
-    float _puckResistance = 1e7f;           // Initial estimate of puck resistance
     const float _maxPressure = 15.0f;       // Maximum pressure (bar)
     const float _maxPressureRate = 9.0f;    // Maximum pressure rate (bar/s)
-    float _pumpFlowCoefficients[4] = {0.0f, 0.0f, -0.5854f, 10.79f}; // Pump flow polynomial coefficients
-
-    // === Controller Gains ===
-    float _commutationGain = 0.7f;     // Commutation gain
-    float _convergenceGain = 1.0f;     // Convergence gain
-    float _epsilonCoefficient = 0.3f;  // Limit band coefficient
-    float _deadbandCoefficient = 0.1f; // Dead band coefficient
-    float _integralGain = 0.25f;       // Integral gain (dt/tau)
     
-    // === Controller states ===
-    float _previousPressure = 0.0f;    // Previous pressure reading (bar)
-    float _errorIntegral = 0.0f;       // Integral of pressure error
-    float _pumpDutyCycle = 0.0f;       // Calculated pump duty cycle (0-100%)
-
-    // === Flow estimation ===
-    float _waterThroughPuckFlowRate = 0.0f;      // Water through puck flow rate (ml/s)
-    float _pumpFlowRate = 0.0f;        // Pump flow rate (ml/s)
-    float _pumpVolume = 0.0f;          // Total pump volume (ml)
-    float _coffeeOutput = 0.0f;        // Total coffee output (ml)
-    float _coffeeFlowRate = 0.0f;      // Coffee output flow rate (mL/s)
-    float _lastFilteredPressure = 0.0f; // Previous filtered pressure for derivative calculation
-    float _filterEstimatorFrequency = 1.0f; // Filter frequency for estimator
-    float _pressureFilterEstimator = 0.0f;
-    float _puckSaturationVolume = 0.0f;// Total volume to saturate the puck(ml)
-    float _puckSaturatedVolume = 45.0f; // Volume at puck saturation (ml)
-    float _lastPuckConductance = 0.0f; // Previous puck resistance for derivative calculation
-    float _puckConductance = 0.0f;
-    float _puckConductanceDerivative = 0.0f; // Derivative of puck resistance
-    bool _puckState[3] = {};
-    int _puckCounter  = 0;
-    float exportPumpFlowRate = 0.0f; // To disociate the exported value from the internal because of filtering (cosmetic) purpose
-    SimpleKalmanFilter *_pressureKalmanFilter;
+    // === Input/Output Pointers ===
+    float* _rawPressureSetpoint;        // Pressure profile current setpoint/limit (bar)
+    float* _rawFlowSetpoint;            // Flow profile current setpoint/limit (ml/s)
+    float* _rawPressure;                // Raw pressure measurement from sensor (bar)
+    float* _ctrlOutput;                 // Controller output power ratio (0-100%)
+    int* _valveStatus;                  // 3-way valve status (group head open/closed)
+    
+    // === Filtering and Signal Processing ===
+    std::unique_ptr<SimpleKalmanFilter> _pressureKalmanFilter;
+    std::unique_ptr<DerivativeFilter> _pressureDerivativeFilter;
+    float _filteredPressureSensor = 0.0f;      // Filtered pressure sensor reading (bar)
+    float _filteredSetpoint = 0.0f;            // Filtered pressure setpoint (bar)
+    float _filteredSetpointDerivative = 0.0f; // Derivative of filtered setpoint (bar/s)
+    float _filteredPressureDerivative = 0.0f;   // Derivative of filtered pressure (bar/s)
+    float _lastFilteredPressure = 0.0f;        // Previous filtered pressure for derivative calculation
+    int _sampleCounter = 0;                    // Sample counter for timestamping
+    
+    // Setpoint filter parameters
+    float _setpointFilterFreq = 1.0f;         // Setpoint filter cutoff frequency (Hz)
+    float _setpointFilterDamping = 1.2f;       // Setpoint filter damping ratio
+    bool _setpointFilterInitialized = false;
+    float _filterEstimatorFrequency = 1.0f;    // Filter frequency for estimator
+    
+    // === Controller Parameters ===
+    float _commutationGain = 0.7f;              // Commutation gain
+    float _convergenceGain = 1.0f;              // Convergence gain
+    float _epsilonCoefficient = 0.3f;           // Limit band coefficient
+    float _deadbandCoefficient = 0.1f;           // Dead band coefficient
+    float _integralGain = 0.25f;                // Integral gain (dt/tau)
+    
+    // === Controller State ===
+    float _previousPressure = 0.0f;             // Previous pressure reading (bar)
+    float _errorIntegral = 0.0f;                // Integral of pressure error
+    float _pumpDutyCycle = 0.0f;                // Calculated pump duty cycle (0-100%)
+    float _pumpFlowCoefficients[4] = {0.0f, 0.0f, 0.0f, 0.0f}; // Pump flow model coefficients
+    
+    // === Subsystems ===
+    std::unique_ptr<PumpModel> _pumpModel;
+    std::unique_ptr<CoffeeEstimator> _coffeeEstimator;
 };
 
 #endif // PRESSURE_CONTROLLER_H
